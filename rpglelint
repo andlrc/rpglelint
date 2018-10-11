@@ -1,0 +1,60 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use v5.16;
+
+use Getopt::Long qw{ GetOptionsFromArray :config no_ignore_case gnu_compat bundling };
+
+use RPG::Parser;
+use RPG::Linter;
+
+my $parser = RPG::Parser::Parser->new;
+my $linter = RPG::Linter::Linter->new;
+
+my $dump = 0;
+
+sub parseopts
+{
+  my ($opts) = @_;
+
+  GetOptionsFromArray($opts,
+    '--dump' => \$dump,
+    'I=s' => sub {
+      my ($name, $value) = @_;
+      push(@{$parser->{include}}, split(/[,:]/, $value));
+    },
+    'W=s' => sub {
+      my ($name, $option) = @_;
+      my $set = 1;
+      if ($option =~ m{ ^ no (.*) }xsmig) {
+        $option = $1;
+        $set = 0;
+      }
+      if ($option eq "all") {
+        for (keys %{$linter->{rules}}) {
+          $linter->{rules}->{$_} = $set;
+        }
+      } else {
+        unless (grep { $_ eq $option } keys %{$linter->{rules}}) {
+          die "Unknown warning '$option'";
+        }
+        $linter->{rules}->{$option} = $set;
+      }
+    }
+  ) or exit 2;
+}
+
+parseopts(\@ARGV);
+$parser->{parseopts} = \&parseopts;
+
+@ARGV = ('-') if @ARGV < 1;
+
+for my $file (@ARGV) {
+  my $scope = $parser->parse($file);
+  if ($dump) {
+    print Dumper($scope);
+  } else {
+    $linter->lint($scope);
+  }
+}

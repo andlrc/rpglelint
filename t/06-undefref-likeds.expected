@@ -1,0 +1,3 @@
+t/06-undefref-likeds.rpgle:2:21: warning: 'undef_ds' undeclared [-Wundefref]
+ dcl-ds my_ds likeds(undef_ds);
+                     ^

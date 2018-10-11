@@ -1,0 +1,18 @@
+t/09-qualified-likeds-nested.rpgle:2:8: warning: data structure 'not_qual' needs to be qualified [-Wqualified]
+ dcl-ds not_qual;
+        ^
+t/09-qualified-likeds-nested.rpgle:13:10: warning: data structure 'lnot_qual' needs to be qualified [-Wqualified]
+   dcl-ds lnot_qual likeds(not_qual);
+          ^
+t/09-qualified-likeds-nested.rpgle:14:10: warning: data structure 'llnot_qual' needs to be qualified [-Wqualified]
+   dcl-ds llnot_qual likeds(lnot_qual);
+          ^
+t/09-qualified-likeds-nested.rpgle:18:10: warning: data structure 'not_qual2' needs to be qualified [-Wqualified]
+   dcl-ds not_qual2;
+          ^
+t/09-qualified-likeds-nested.rpgle:28:10: warning: data structure 'lnot_qual2' needs to be qualified [-Wqualified]
+   dcl-ds lnot_qual2 likeds(not_qual2);
+          ^
+t/09-qualified-likeds-nested.rpgle:29:10: warning: data structure 'llnot_qual2' needs to be qualified [-Wqualified]
+   dcl-ds llnot_qual2 likeds(lnot_qual2);
+          ^

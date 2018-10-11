@@ -1,0 +1,6 @@
+t/01-undefref.rpgle:5:1: warning: 'var3' undeclared [-Wundefref]
+ var3 = 
+ ^
+t/01-undefref.rpgle:6:7: warning: 'var4' undeclared [-Wundefref]
+       var4
+       ^

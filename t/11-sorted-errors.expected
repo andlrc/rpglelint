@@ -1,0 +1,21 @@
+t/11-sorted-errors.rpgle:2:8: warning: global declaration 'a' is not allowed [-Wglobal]
+ dcl-ds a;
+        ^
+t/11-sorted-errors.rpgle:2:8: warning: data structure 'a' needs to be qualified [-Wqualified]
+ dcl-ds a;
+        ^
+t/11-sorted-errors.rpgle:5:7: warning: global declaration 'a' is not allowed [-Wglobal]
+ dcl-s a int(10);
+       ^
+t/11-sorted-errors.rpgle:6:8: warning: global declaration 'b' is not allowed [-Wglobal]
+ dcl-ds b;
+        ^
+t/11-sorted-errors.rpgle:6:8: warning: data structure 'b' needs to be qualified [-Wqualified]
+ dcl-ds b;
+        ^
+t/11-sorted-errors.rpgle:7:3: warning: declaration of 'sub1' shadows a global declaration [-Wshadow]
+   sub1 int(10);
+   ^
+t/11-sorted-errors.rpgle:3:3: note: shadowed declaration is here
+   sub1 int(10);
+   ^

@@ -1,0 +1,6 @@
+t/03-qualified.rpgle:4:7: warning: data structure 'not_qual' needs to be qualified [-Wqualified]
+       not_qual;
+       ^
+t/03-qualified.rpgle:15:8: warning: data structure 'likey_not_qual' needs to be qualified [-Wqualified]
+ dcl-ds likey_not_qual likeds(not_qual);
+        ^

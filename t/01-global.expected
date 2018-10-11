@@ -1,0 +1,6 @@
+t/01-global.rpgle:2:7: warning: global declaration 'global1' is not allowed [-Wglobal]
+ dcl-s global1 varchar(32);
+       ^
+t/01-global.rpgle:3:8: warning: global declaration 'global2' is not allowed [-Wglobal]
+ dcl-ds global2;
+        ^

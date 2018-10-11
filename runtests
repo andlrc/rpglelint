@@ -1,0 +1,26 @@
+#!/bin/sh
+
+rpglelint="./rpglelint";
+if test -n "$1"
+then
+	set -- t/"$1"*.rpgle
+else
+	set -- t/[0-9][0-9]-*.rpgle
+fi
+
+for file
+do
+	test -f "$file" || continue
+	expfile=${file%.*}.expected
+
+	if test -f "$expfile"
+	then
+		# run test
+		printf '$ %s\n' "$rpglelint $file 2>&1 | diff $expfile -"
+		"$rpglelint" "$file" 2>&1 | diff "$expfile" - || exit 2
+	else
+		# create expected output
+		printf '$ %s\n' "$rpglelint $file 2> $expfile"
+		"$rpglelint" "$file" 2> "$expfile"
+	fi
+done

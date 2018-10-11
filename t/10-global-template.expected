@@ -1,0 +1,3 @@
+t/10-global-template.rpgle:7:8: warning: global declaration 'not_tpl' is not allowed [-Wglobal]
+ dcl-ds not_tpl;
+        ^

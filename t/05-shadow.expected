@@ -1,0 +1,6 @@
+t/05-shadow.rpgle:5:9: warning: declaration of 'var1' shadows a global declaration [-Wshadow]
+   dcl-s var1 int(10);
+         ^
+t/05-shadow.rpgle:2:7: note: shadowed declaration is here
+ dcl-s var1 int(10);
+       ^
