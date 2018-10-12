@@ -24,10 +24,10 @@ my $LINT_WARN = "warning";
 my $RULES_GLOBAL = "global";
 my $RULES_SHADOW = "shadow";
 my $RULES_QUALIFIED = "qualified";
-my $RULES_UCCONST = "ucconst";
+my $RULES_UPPERCASE_CONSTANT = "uppercase-constant";
 my $RULES_UNDEFINED_REFERENCE = "undefined-reference";
 my $RULES_SUBROUTINE = "subroutine";
-my $RULES_UCINDICATOR = "ucindicator";
+my $RULES_UPPERCASE_INDICATOR = "uppercase-indicator";
 my $RULES_INDICATOR = "indicator";
 my $RULES_UNUSED_VARIABLE = "unused-variable";
 
@@ -35,10 +35,10 @@ my $default_rules = {
   global => 0,
   shadow => 0,
   qualified => 0,
-  ucconst => 0,
+  'uppercase-constant' => 0,
   'undefined-reference' => 0,
   subroutine => 0,
-  ucindicator => 0,
+  'uppercase-indicator' => 0,
   indicator => 0,
   'unused-variable' => 0
 };
@@ -200,8 +200,8 @@ sub lint
     $self->lint_qualified($scope);
   }
 
-  if ($self->{rules}->{$RULES_UCCONST}) {
-    $self->lint_ucconst($scope);
+  if ($self->{rules}->{$RULES_UPPERCASE_CONSTANT}) {
+    $self->lint_uppercase_constant($scope);
   }
 
   if ($self->{rules}->{$RULES_UNDEFINED_REFERENCE}) {
@@ -212,8 +212,8 @@ sub lint
     $self->lint_subroutine($scope);
   }
 
-  if ($self->{rules}->{$RULES_UCINDICATOR}) {
-    $self->lint_ucindicator($scope);
+  if ($self->{rules}->{$RULES_UPPERCASE_INDICATOR}) {
+    $self->lint_uppercase_indicator($scope);
   }
 
   if ($self->{rules}->{$RULES_INDICATOR}) {
@@ -238,7 +238,7 @@ sub lint
     elsif ($what eq $RULES_QUALIFIED) {
       $self->print_unix($what, $LINT_WARN, $data[0], sprintf("data structure '%s' needs to be qualified", $data[0]->{name}));
     }
-    elsif ($what eq $RULES_UCCONST) {
+    elsif ($what eq $RULES_UPPERCASE_CONSTANT) {
       $self->print_unix($what, $LINT_WARN, $data[0], sprintf("constant '%s' needs to be all uppercase", $data[0]->{name}));
     }
     elsif ($what eq $RULES_SHADOW) {
@@ -248,7 +248,7 @@ sub lint
     elsif ($what eq $RULES_SUBROUTINE) {
       $self->print_unix($what, $LINT_WARN, $data[0], sprintf("subroutine '%s' is not allowed", $data[0]->{name}));
     }
-    elsif ($what eq $RULES_UCINDICATOR) {
+    elsif ($what eq $RULES_UPPERCASE_INDICATOR) {
       $self->print_unix($what, $LINT_WARN, $data[0], sprintf("indicator '%s' needs to be all uppercase", $data[0]->{token}));
     }
     elsif ($what eq $RULES_INDICATOR) {
@@ -332,7 +332,7 @@ sub lint_qualified
   return $self;
 }
 
-sub lint_ucconst
+sub lint_uppercase_constant
 {
   my $self = shift;
   my ($scope) = @_;
@@ -344,7 +344,7 @@ sub lint_ucconst
         if ($_->{what} eq $DCL_C) {
           next if uc $_->{name} eq $_->{name};
 
-          $self->error($RULES_UCCONST, $_);
+          $self->error($RULES_UPPERCASE_CONSTANT, $_);
         }
       }
   });
@@ -424,7 +424,7 @@ sub lint_subroutine
   return $self;
 }
 
-sub lint_ucindicator
+sub lint_uppercase_indicator
 {
   my $self = shift;
   my ($scope) = @_;
@@ -436,7 +436,7 @@ sub lint_ucindicator
       if ($_->{what} eq $CALC_IND) {
         next if uc $_->{token} eq $_->{token};
 
-        $self->error($RULES_UCINDICATOR, $_);
+        $self->error($RULES_UPPERCASE_INDICATOR, $_);
       }
     }
   });

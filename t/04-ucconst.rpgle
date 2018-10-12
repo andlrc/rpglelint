@@ -1,4 +1,4 @@
-// rpglelint: -Wucconst
+// rpglelint: -Wuppercase-constant
 dcl-c c1 
 const('123');
 dcl-c C2 const('123');

@@ -1,6 +1,6 @@
-t/04-ucconst.rpgle:2:7: warning: constant 'c1' needs to be all uppercase [-Wucconst]
+t/04-ucconst.rpgle:2:7: warning: constant 'c1' needs to be all uppercase [-Wuppercase-constant]
  dcl-c c1 
        ^
-t/04-ucconst.rpgle:6:13: warning: constant 'c3' needs to be all uppercase [-Wucconst]
+t/04-ucconst.rpgle:6:13: warning: constant 'c3' needs to be all uppercase [-Wuppercase-constant]
    dcl-c     c3 const('123');
              ^

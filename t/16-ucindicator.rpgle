@@ -1,4 +1,4 @@
-// rpglelint: -Wucindicator
+// rpglelint: -Wuppercase-indicator
 if a = *oN;
   b = *OfF;
 else;
