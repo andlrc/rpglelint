@@ -1,4 +1,4 @@
-// rpglelint: -Wundefref
+// rpglelint: -Wundefined-reference
 dcl-s var1 int(10);
 dcl-s var2 int(20);
 

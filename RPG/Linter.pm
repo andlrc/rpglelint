@@ -8,6 +8,7 @@ use Exporter;
 my $DCL_DS = 'dcl-ds';
 my $DCL_S = 'dcl-s';
 my $DCL_C = 'dcl-c';
+my $DCL_SUBF = 'dcl-subf';
 
 my $CALC_IDENT = 'ident';
 my $CALC_SUBF = 'subf';
@@ -24,20 +25,22 @@ my $RULES_GLOBAL = "global";
 my $RULES_SHADOW = "shadow";
 my $RULES_QUALIFIED = "qualified";
 my $RULES_UCCONST = "ucconst";
-my $RULES_UNDEFREF = "undefref";
+my $RULES_UNDEFINED_REFERENCE = "undefined-reference";
 my $RULES_SUBROUTINE = "subroutine";
 my $RULES_UCINDICATOR = "ucindicator";
 my $RULES_INDICATOR = "indicator";
+my $RULES_UNUSED_VARIABLE = "unused-variable";
 
 my $default_rules = {
   global => 0,
   shadow => 0,
   qualified => 0,
   ucconst => 0,
-  undefref => 0,
+  'undefined-reference' => 0,
   subroutine => 0,
   ucindicator => 0,
-  indicator => 0
+  indicator => 0,
+  'unused-variable' => 0
 };
 
 # utility function to loop over each scope,
@@ -201,8 +204,8 @@ sub lint
     $self->lint_ucconst($scope);
   }
 
-  if ($self->{rules}->{$RULES_UNDEFREF}) {
-    $self->lint_undefref($scope);
+  if ($self->{rules}->{$RULES_UNDEFINED_REFERENCE}) {
+    $self->lint_undefined_reference($scope);
   }
 
   if ($self->{rules}->{$RULES_SUBROUTINE}) {
@@ -217,12 +220,16 @@ sub lint
     $self->lint_indicator($scope);
   }
 
+  if ($self->{rules}->{$RULES_UNUSED_VARIABLE}) {
+    $self->lint_unused_variable($scope);
+  }
+
   for my $error (sort {
       $a->{data}[0]->{lineno} <=> $b->{data}[0]->{lineno};
     } @{$self->{linterrors}}) {
     my ($what, @data) = ($error->{what}, @{$error->{data}});
 
-    if ($what eq $RULES_UNDEFREF) {
+    if ($what eq $RULES_UNDEFINED_REFERENCE) {
       $self->print_unix($what, $LINT_WARN, $data[0], sprintf("'%s' undeclared", $data[0]->{token}));
     }
     elsif ($what eq $RULES_GLOBAL) {
@@ -246,6 +253,9 @@ sub lint
     }
     elsif ($what eq $RULES_INDICATOR) {
       $self->print_unix($what, $LINT_WARN, $data[0], sprintf("indicator '%s' is not allowed", $data[0]->{token}));
+    }
+    elsif ($what eq $RULES_UNUSED_VARIABLE) {
+      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("'%s' defined but not used", $data[0]->{name}));
     } else {
       die "unknown lint message";
     }
@@ -342,7 +352,7 @@ sub lint_ucconst
   return $self;
 }
 
-sub lint_undefref
+sub lint_undefined_reference
 {
   my $self = shift;
   my ($scope) = @_;
@@ -367,7 +377,7 @@ sub lint_undefref
     for (@{$scope->{declarations}}) {
       next unless $_->{what} eq $DCL_DS;
       next unless defined $_->{likeds};
-      $self->error($RULES_UNDEFREF, {
+      $self->error($RULES_UNDEFINED_REFERENCE, {
         file => $_->{file},
         line => $_->{line},
         lineno => $_->{lineno},
@@ -379,7 +389,7 @@ sub lint_undefref
     for (@{$scope->{calculations}}) {
       if ($_->{what} eq $CALC_IDENT) {
         # check if ident is defined
-        $self->error($RULES_UNDEFREF, $_) unless defined $decls->{$_->{token}};
+        $self->error($RULES_UNDEFINED_REFERENCE, $_) unless defined $decls->{$_->{token}};
       }
       elsif ($_->{what} eq $CALC_SUBF) {
         # check to see if the subf is part of the ds
@@ -388,7 +398,7 @@ sub lint_undefref
         my $ds = $dschain->[-1];
 
         unless (grep { $_->{name} eq $token } @{$ds->{fields}}) {
-          $self->error($RULES_UNDEFREF, $_);
+          $self->error($RULES_UNDEFINED_REFERENCE, $_);
         }
       }
     }
@@ -449,6 +459,56 @@ sub lint_indicator
 
         $self->error($RULES_INDICATOR, $_);
       }
+    }
+  });
+
+  return $self;
+}
+
+sub lint_unused_variable
+{
+  my $self = shift;
+  my ($scope) = @_;
+
+  my $gdecls = undef;
+  my $decls = undef;
+
+  main::loopscopes($scope, sub {
+    my @scopes = @_;
+    my ($scope) = @scopes;
+
+    if (defined $gdecls) {
+      $decls = { %{$gdecls} };
+    } else {
+      $gdecls = {};
+      $decls = $gdecls;
+    }
+
+    main::declhash($decls, \@scopes);
+
+    # check if a likeds is found
+    for (@{$scope->{declarations}}) {
+      next unless $_->{what} eq $DCL_DS;
+      next unless defined $_->{likeds};
+      delete $decls->{$_->{name}};
+    }
+
+    for (@{$scope->{calculations}}) {
+      if ($_->{what} eq $CALC_IDENT) {
+        delete $decls->{$_->{token}};
+      }
+    }
+
+    for (keys %{$decls}) {
+      my $decl = $decls->{$_};
+
+      next if $decl->{what} ne $DCL_SUBF and $decl->{what} ne $DCL_S;
+
+      # skip dcl-subf for now as we don't have control of qualified, and likeds
+      # with qualified.
+      next if $decl->{what} eq $DCL_SUBF;
+
+      $self->error($RULES_UNUSED_VARIABLE, $decl);
     }
   });
 

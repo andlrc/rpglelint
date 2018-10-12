@@ -1,4 +1,4 @@
-// rpglelint: -Wundefref
+// rpglelint: -Wundefined-reference
 dcl-ds my_ds;
   is_global int(10);
 end-ds;

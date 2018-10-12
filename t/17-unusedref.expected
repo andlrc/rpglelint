@@ -1,0 +1,3 @@
+t/17-unusedref.rpgle:3:7: warning: 'b' defined but not used [-Wunused-variable]
+ dcl-s b int(10);
+       ^

@@ -11,6 +11,7 @@ my $DCL_PR = 'dcl-pr';
 my $DCL_S = 'dcl-s';
 my $DCL_C = 'dcl-c';
 my $DCL_DS = 'dcl-ds';
+my $DCL_SUBF = 'dcl-subf';
 
 my $CALC_STR = 'str';
 my $CALC_BIF = 'bif';
@@ -144,6 +145,7 @@ sub subf
 
     my ($line, $lineno, $column) = main::getlinenocol($_, $1);
     push(@params, {
+        what => $DCL_SUBF,
         file => $self->{file},
         name => $1,
         type => $2,
@@ -224,7 +226,7 @@ sub parse
     next if $self->{stmt} =~ m{ ^ \s* $ }xsmi;
 
     # comments, try to extract liter options, i.e:
-    # // rpglelint: -Wundefref -Wnoshadow
+    # // rpglelint: -Wundefined-reference -Wnoshadow
     if ($self->{stmt} =~ m{ ^ \s* // }xsmi) {
       if ($self->{stmt} =~ m { rpglelint: (.*) }xsmi) {
         my @opts = grep { m/./ } split(/\s+/, $1);
