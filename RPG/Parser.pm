@@ -217,7 +217,7 @@ sub parse
     next if $self->{stmt} =~ m{ ^ \s* $ }xsmi;
 
     if ($self->{stmt} =~ m{ ^ \s* / \s* (?: copy | include ) \s+ (.*?) \s* $ }xsmi) {
-      my $parser = RPG::Parser::Parser->new;
+      my $parser = RPG::Parser->new;
       $parser->{include} = $parser->{include};
 
       my $file = main::findfile($1, @{$self->{include}});
