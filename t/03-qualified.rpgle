@@ -13,4 +13,5 @@ dcl-ds
 end-ds;
 
 dcl-ds likey_not_qual likeds(not_qual);
+dcl-ds likey_not_qual_qual qualified likeds(not_qual);
 dcl-ds likey_qual likeds(qual);
