@@ -1,0 +1,17 @@
+Usage rpglelint [OPTIONS]... [FILES]...
+
+The following warnings are supported:
+  -Wglobal,
+  -Windicator,
+  -Wqualified,
+  -Wshadow,
+  -Wsubroutine,
+  -Wundefined-reference,
+  -Wunused-variable,
+  -Wuppercase-constant,
+  -Wuppercase-indicator,
+
+  -Wall   enables all warnings
+
+  -I, --include   a comma seperated list of directories to search for included files
+  -h, --help      show this help and exit

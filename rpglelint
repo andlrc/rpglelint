@@ -9,8 +9,8 @@ use Getopt::Long qw{ GetOptionsFromArray :config no_ignore_case gnu_compat bundl
 use RPG::Parser;
 use RPG::Linter;
 
-my $parser = RPG::Parser::Parser->new;
-my $linter = RPG::Linter::Linter->new;
+my $parser = RPG::Parser->new;
+my $linter = RPG::Linter->new;
 
 my $dump = 0;
 
@@ -20,7 +20,7 @@ sub parseopts
 
   GetOptionsFromArray($opts,
     '--dump' => \$dump,
-    'I=s' => sub {
+    'I|include=s' => sub {
       my ($name, $value) = @_;
       push(@{$parser->{include}}, split(/[,:]/, $value));
     },
@@ -46,11 +46,12 @@ sub parseopts
       print("Usage rpglelint [OPTIONS]... [FILES]...\n");
       print("\n");
       printf("The following warnings are supported:\n");
-      printf("  -W%s,\n", $_) for keys %{$linter->{rules}};
+      printf("  -W%s,\n", $_) for sort keys %{$linter->{rules}};
       printf("\n");
       printf("  -Wall   enables all warnings\n");
       printf("\n");
-      printf("  -h, --help  show this help and exit\n");
+      printf("  -I, --include   a comma seperated list of directories to search for included files\n");
+      printf("  -h, --help      show this help and exit\n");
       exit 0;
     }
   ) or exit 2;

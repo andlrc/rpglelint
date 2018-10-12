@@ -90,7 +90,7 @@ sub getlinenocol
   return ($line, $lineno, $col);
 }
 
-package RPG::Parser::Parser;
+package RPG::Parser;
 
 sub new
 {
@@ -179,7 +179,13 @@ sub warn
   my $self = shift;
   my ($msg) = @_;
 
-  printf(STDERR "%s while parsing the file '%s' at line %d\n", $msg, $self->{file}, $.);
+  printf(STDERR "'%s': while parsing the file '%s'", $msg, $self->{file});
+  if (defined $.) {
+    printf(STDERR "at line %d\n", $.);
+  }
+  else {
+    printf(STDERR "\n");
+  }
 }
 
 sub parse

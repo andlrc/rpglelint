@@ -125,7 +125,7 @@ sub findlikeds
   return [];
 }
 
-package RPG::Linter::Linter;
+package RPG::Linter;
 
 sub print_unix
 {
