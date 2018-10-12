@@ -12,13 +12,34 @@ my $DCL_S = 'dcl-s';
 my $DCL_C = 'dcl-c';
 my $DCL_DS = 'dcl-ds';
 
-my $R_NAME = '(?! \d ) \w+';
+my $CALC_STR = 'str';
+my $CALC_BIF = 'bif';
+my $CALC_IDENT = 'ident';
+my $CALC_SUBF = 'subf';
+my $CALC_NUM = 'num';
+my $CALC_OP = 'op';
+
+my $R_IDENT = '(?! \d ) \w+';
 my $R_TYPE = '  (?: date | ind | object | pointer | time | timestamp | value )'
            . '| (?: bindec | char | class | date | float | graph | int | like '
            . '    | likeds | likefile | likerec | object | options | packed'
            . '    | pointer | time | timestamp | ucs2 | uns | varchar'
            . '    | vargraph | varucs2 | zoned ) \s*\(\s* .*? \s*\)';
 my $R_KWS = '[^;]+';
+my $R_STR = '\'(\'\'|[^\'])*?\'';
+my $R_NUM = '\d+';
+my $R_SUBF = '\. '. $R_IDENT;
+my $R_OP = '(?:<> | >= | <= | > | < | = | \+= | -= | \+ | - | or | and | not)';
+my $R_BIF = '% ' . $R_IDENT;
+
+sub strjoin
+{
+  my ($str) = @_;
+
+  $str =~ s{ - \n }{}xsmig;
+
+  return $str;
+}
 
 sub findfile
 {
@@ -31,13 +52,16 @@ sub findfile
   $f =~ s{ , }{.file/}xsmig;
 
   for my $lib (@path) {
-    return $lib ."/". $f . ".rpgleinc" if -f $lib ."/". $f . ".rpgleinc";
-    return $lib ."/". $f . ".mbr" if -f $lib ."/". $f . ".mbr";
-  }
+    my $slug = "$lib/$f";
 
-  for my $lib (@path) {
-    return lc($lib ."/". $f . ".rpgleinc") if -f lc($lib ."/". $f . ".rpgleinc");
-    return lc($lib ."/". $f . ".mbr") if -f lc($lib ."/". $f . ".mbr");
+    return $slug     if -f $slug;
+    return lc($slug) if -f lc($slug);
+
+    return $slug . ".rpgleinc"     if -f $slug . ".rpgleinc";
+    return lc($slug . ".rpgleinc") if -f lc($slug . ".rpgleinc");
+
+    return $slug . ".mbr"     if -f $slug . ".mbr";
+    return lc($slug . ".mbr") if -f lc($slug . ".mbr");
   }
 
   # fallback, return input
@@ -112,7 +136,7 @@ sub subf
     # skip comments
     next if m{ ^ \s* // }xsmi;
 
-    last unless m{ (?: dcl-subf \s+ )? ($R_NAME) \s+ ($R_TYPE) (?: \s+ ($R_KWS) )? }xsmi;
+    last unless m{ (?: dcl-subf \s+ )? ($R_IDENT) \s+ ($R_TYPE) (?: \s+ ($R_KWS) )? }xsmi;
 
     my @kws = split(/\s+/, defined $3 ? $3 : '');
 
@@ -221,7 +245,7 @@ sub parse
     next if $self->{stmt} =~ m{ ctl-opt }xsmi;
 
     # dcl-proc
-    if ($self->{stmt} =~ m{ dcl-proc \s+ ($R_NAME) ( \s+ export )? }xsmi) {
+    if ($self->{stmt} =~ m{ ^ \s* dcl-proc \s+ ($R_IDENT) ( \s+ export )? }xsmi) {
       my $currentproc = {
         exported => defined $2,
         declarations => [],
@@ -234,13 +258,13 @@ sub parse
       next;
     }
 
-    if ($self->{stmt} =~ m{ end-proc }xsmi) {
+    if ($self->{stmt} =~ m{ ^ \s* end-proc \s* ; }xsmi) {
       $self->popscope();
       next;
     }
 
     # dcl-pr
-    if ($self->{stmt} =~ m{ dcl-pr \s+ ($R_NAME) (?: \s+ ($R_TYPE) )? }xsmi) {
+    if ($self->{stmt} =~ m{ ^ \s* dcl-pr \s+ ($R_IDENT) (?: \s+ ($R_TYPE) )? }xsmi) {
       $self->adddecl($DCL_PR, {
         name => $1,
         returns => defined $2 ? $2 : '',
@@ -251,7 +275,7 @@ sub parse
     }
 
     # dcl-pi
-    if ($self->{stmt} =~ m{ dcl-pi \s+ ($R_NAME | \*N) (?: \s+ ($R_TYPE) )? }xsmi) {
+    if ($self->{stmt} =~ m{ ^ \s* dcl-pi \s+ ($R_IDENT | \*N) (?: \s+ ($R_TYPE) )? }xsmi) {
       $self->{scope}->{returns} = $2 if defined $2;
       $self->{scope}->{parameters} = $self->subf();
       $self->warn("expected 'end-pi'") unless m{ end-pi }xsmi;
@@ -259,7 +283,7 @@ sub parse
     }
 
     # dcl-s
-    if ($self->{stmt} =~ m{ dcl-s \s+ ($R_NAME) \s+ ($R_TYPE) (?: \s+ ($R_KWS) )? }xsmi) {
+    if ($self->{stmt} =~ m{ ^ \s* dcl-s \s+ ($R_IDENT) \s+ ($R_TYPE) (?: \s+ ($R_KWS) )? }xsmi) {
       my @kws = split(/\s+/, defined $3 ? $3 : '');
       $self->adddecl($DCL_S, {
         name => $1,
@@ -271,7 +295,7 @@ sub parse
     }
 
     # dcl-c
-    if ($self->{stmt} =~ m{ dcl-c \s+ ($R_NAME) (?: \s+ const \s* \( (.*?) \) | (.*?) ) ; }xsmi) {
+    if ($self->{stmt} =~ m{ ^ \s* dcl-c \s+ ($R_IDENT) (?: \s+ const \s* \( (.*?) \) | (.*?) ) ; }xsmi) {
       $self->adddecl($DCL_C, {
         name => $1,
         value => ($2 or $3)
@@ -281,7 +305,7 @@ sub parse
     }
 
     # dcl-ds
-    if ($self->{stmt} =~ m{ dcl-ds \s+ ($R_NAME) (?: \s+ ($R_KWS) )? }xsmi) {
+    if ($self->{stmt} =~ m{ ^ \s* dcl-ds \s+ ($R_IDENT) (?: \s+ ($R_KWS) )? }xsmi) {
       my @kws = split(/\s+/, defined $2 ? $2 : '');
 
       my $decl = $self->adddecl($DCL_DS, {
@@ -311,7 +335,7 @@ sub parse
     }
 
     # subroutines
-    if ($self->{stmt} =~ m{ begsr \s+ ($R_NAME) }xsmi) {
+    if ($self->{stmt} =~ m{ ^ \s* begsr \s+ ($R_IDENT) }xsmi) {
       my $subroutine = {
         calculations => []
       };
@@ -321,12 +345,60 @@ sub parse
       next;
     }
 
-    if ($self->{stmt} =~ m{ endsr }xsmi) {
+    if ($self->{stmt} =~ m{ ^ \s* endsr \s* ; }xsmi) {
       $self->popscope();
       next;
     }
 
-    push(@{$self->{scope}->{calculations}}, $self->{stmt});
+    my $startlineno = $. - (() = $self->{stmt} =~ m{ \n }xsmig) + 1;
+    while (my $kw = $self->{stmt} =~ m{ ( $R_STR | $R_BIF | $R_SUBF | $R_IDENT | $R_NUM | $R_OP ) }xsmigp) {
+      my @prelines = split(/\n/, ${^PREMATCH});
+      my $calc = {
+        file => $self->{file},
+        lineno => $startlineno,
+        column => 1,
+        line => '',
+        token => $1,
+        stmt => $self->{stmt}
+      };
+      if (@prelines) {
+        $calc->{lineno} += @prelines - 1;
+        $calc->{line} = pop(@prelines);
+        $calc->{column} += length($calc->{line});
+      }
+      $calc->{line} .= $calc->{token};
+      $calc->{line} .= ${^POSTMATCH} =~ s{ \n .* }{}xsmir . $/;
+
+      if ($calc->{token} =~ m{ $R_STR }xsmi) {
+        $calc->{what} = $CALC_STR;
+ 
+        # join continuously character literals
+        $calc->{token} =~ s{ ' (.*?) ' }{"'" . main::strjoin($1) . "'"}xsmieg;
+      }
+      elsif ($calc->{token} =~ m{ $R_BIF }xsmi) {
+        $calc->{what} = $CALC_BIF;
+      }
+      elsif ($calc->{token} =~ m{ $R_SUBF }xsmi) {
+        $calc->{what} = $CALC_SUBF;
+        $calc->{column}++;
+        $calc->{token} = substr($calc->{token}, 1);
+        $calc->{ds} = $self->{scope}->{calculations}[-1]->{token};
+      }
+      elsif ($calc->{token} =~ m{ $R_IDENT }xsmi) {
+        $calc->{what} = $CALC_IDENT;
+      }
+      elsif ($calc->{token} =~ m{ $R_NUM }xsmi) {
+        $calc->{what} = $CALC_NUM;
+      }
+      elsif ($calc->{token} =~ m{ $R_OP }xsmi) {
+        $calc->{what} = $CALC_OP;
+      }
+
+      push(@{$self->{scope}->{calculations}}, $calc);
+    }
+
+
+
   }
 
   if ($self->{file} ne "-") {

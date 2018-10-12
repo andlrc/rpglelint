@@ -9,6 +9,9 @@ my $DCL_DS = 'dcl-ds';
 my $DCL_S = 'dcl-s';
 my $DCL_C = 'dcl-c';
 
+my $CALC_IDENT = 'ident';
+my $CALC_SUBF = 'subf';
+
 my $C_WARN = -t 2 ? "\033[1;35m" : '';
 my $C_NOTE = -t 2 ? "\033[1;36m" : '';
 my $C_RESET = -t 2 ? "\033[0m" : '';
@@ -125,13 +128,17 @@ sub lint
     $self->lint_ucconst($scope);
   }
 
+  if ($self->{rules}->{$RULES_UNDEFREF}) {
+    $self->lint_undefref($scope);
+  }
+
   for my $error (sort {
       $a->{data}[0]->{lineno} <=> $b->{data}[0]->{lineno};
     } @{$self->{linterrors}}) {
     my ($what, @data) = ($error->{what}, @{$error->{data}});
 
     if ($what eq $RULES_UNDEFREF) {
-      $self->print($what, $LINT_WARN, $data[0], sprintf("'%s' undeclared", $data[0]->{name}));
+      $self->print($what, $LINT_WARN, $data[0], sprintf("'%s' undeclared", $data[0]->{token}));
     }
     elsif ($what eq $RULES_GLOBAL) {
       $self->print($what, $LINT_WARN, $data[0], sprintf("global declaration '%s' is not allowed", $data[0]->{name}));
@@ -214,7 +221,6 @@ sub lint_shadow
       }
     }
   });
-
 }
 
 sub lint_qualified
@@ -256,6 +262,87 @@ sub lint_ucconst
           $self->error($RULES_UCCONST, $_);
         }
       }
+  });
+}
+
+sub lint_undefref
+{
+  my $self = shift;
+  my ($scope) = @_;
+
+  my $gdecls = undef;
+  my $decls = undef;
+
+  $self->loopscopes($scope, sub {
+    my @scopes = @_;
+    my ($scope) = @scopes;
+
+    if (defined $gdecls) {
+      $decls = { %{$gdecls} };
+    } else {
+      $gdecls = {};
+      $decls = $gdecls;
+    }
+
+    # build hash of global and global+local declarations
+    # copied from "lint_shadow"
+    # TODO: Join to one procedure
+    for (@{$scope->{declarations}}) {
+      my $decl = $decls->{$_->{name}};
+
+      if ($_->{what} eq $DCL_DS) {
+        my $qualified = 0;
+        if ($_->{qualified}) {
+          $qualified = 1;
+        } elsif (defined $_->{likeds}) {
+          my $dschain = main::findlikeds($_->{likeds}, @scopes);
+          if (grep({ $_->{qualified} } @{$dschain})) {
+            $qualified = 1;
+          }
+        }
+
+        if ($qualified) {
+          $decls->{$_->{name}} = $_;
+        } elsif (defined $_->{fields}) {
+          my $ds = $_;
+          for (@{$_->{fields}}) {
+            my $decl = $decls->{$_->{name}};
+            $decls->{$_->{name}} = $_;
+          }
+        }
+      } else {
+        $decls->{$_->{name}} = $_;
+      }
+    }
+
+    # check if a likeds is found
+    for (@{$scope->{declarations}}) {
+      next unless $_->{what} eq $DCL_DS;
+      next unless defined $_->{likeds};
+      $self->error($RULES_UNDEFREF, {
+        file => $_->{file},
+        line => $_->{line},
+        lineno => $_->{lineno},
+        column => index($_->{line}, $_->{likeds}) + 1,
+        token => $_->{likeds}
+      }) unless $decls->{$_->{likeds}};
+    }
+
+    for (@{$scope->{calculations}}) {
+      if ($_->{what} eq $CALC_IDENT) {
+        # check if ident is defined
+        $self->error($RULES_UNDEFREF, $_) unless $decls->{$_->{token}};
+      } elsif ($_->{what} eq $CALC_SUBF) {
+        # check to see if the subf is part of the ds
+        my $token = $_->{token};
+        my $dschain = main::findlikeds($_->{ds}, @scopes);
+        my $ds = $dschain->[-1];
+
+        unless (grep { $_->{name} eq $token } @{$ds->{fields}}) {
+          $self->error($RULES_UNDEFREF, $_);
+        }
+      }
+    }
   });
 }
 

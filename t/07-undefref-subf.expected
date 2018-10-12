@@ -10,6 +10,12 @@ t/07-undefref-subf.rpgle:19:13: warning: 'is_subf_err' undeclared [-Wundefref]
 t/07-undefref-subf.rpgle:21:1: warning: 'my_ds_err' undeclared [-Wundefref]
  my_ds_err.is_global = 1;
  ^
+t/07-undefref-subf.rpgle:21:11: warning: 'is_global' undeclared [-Wundefref]
+ my_ds_err.is_global = 1;
+           ^
 t/07-undefref-subf.rpgle:22:1: warning: 'my_ds_err' undeclared [-Wundefref]
  my_ds_err.is_global_arr = 1;
  ^
+t/07-undefref-subf.rpgle:22:11: warning: 'is_global_arr' undeclared [-Wundefref]
+ my_ds_err.is_global_arr = 1;
+           ^
