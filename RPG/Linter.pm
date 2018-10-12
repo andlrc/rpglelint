@@ -24,13 +24,15 @@ my $RULES_SHADOW = "shadow";
 my $RULES_QUALIFIED = "qualified";
 my $RULES_UCCONST = "ucconst";
 my $RULES_UNDEFREF = "undefref";
+my $RULES_SUBROUTINE = "subroutine";
 
 my $default_rules = {
   global => 0,
   shadow => 0,
   qualified => 0,
   ucconst => 0,
-  undefref => 0
+  undefref => 0,
+  subroutine => 0
 };
 
 sub findlikeds
@@ -132,6 +134,10 @@ sub lint
     $self->lint_undefref($scope);
   }
 
+  if ($self->{rules}->{$RULES_SUBROUTINE}) {
+    $self->lint_subroutine($scope);
+  }
+
   for my $error (sort {
       $a->{data}[0]->{lineno} <=> $b->{data}[0]->{lineno};
     } @{$self->{linterrors}}) {
@@ -152,6 +158,9 @@ sub lint
     elsif ($what eq $RULES_SHADOW) {
       $self->print($what, $LINT_WARN, $data[0], sprintf("declaration of '%s' shadows a global declaration", $data[0]->{name}));
       $self->print($what, $LINT_NOTE, $data[1], "shadowed declaration is here");
+    }
+    elsif ($what eq $RULES_SUBROUTINE) {
+      $self->print($what, $LINT_WARN, $data[0], sprintf("subroutine '%s' is not allowed", $data[0]->{name}));
     } else {
       die "unknown lint message";
     }
@@ -343,6 +352,21 @@ sub lint_undefref
         }
       }
     }
+  });
+}
+
+sub lint_subroutine
+{
+  my $self = shift;
+  my ($scope) = @_;
+
+  $self->loopscopes($scope, sub {
+      my ($scope) = @_;
+
+      for (keys %{$scope->{subroutines}}) {
+        my $sub = $scope->{subroutines}->{$_};
+        $self->error($RULES_SUBROUTINE, $sub);
+      }
   });
 }
 

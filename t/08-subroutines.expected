@@ -1,0 +1,9 @@
+t/08-subroutines.rpgle:6:7: warning: subroutine 'my_sub' is not allowed [-Wsubroutine]
+ begsr my_sub;
+       ^
+t/08-subroutines.rpgle:18:9: warning: subroutine 'my_sub' is not allowed [-Wsubroutine]
+   begsr my_sub;
+         ^
+t/08-subroutines.rpgle:22:9: warning: subroutine 'my_sub2' is not allowed [-Wsubroutine]
+   begsr my_sub2;
+         ^

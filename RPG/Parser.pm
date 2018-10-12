@@ -336,12 +336,16 @@ sub parse
 
     # subroutines
     if ($self->{stmt} =~ m{ ^ \s* begsr \s+ ($R_IDENT) }xsmi) {
-      my $subroutine = {
-        calculations => []
+      my $sub = {
+        file => $self->{file},
+        name => $1,
+        stmt => $self->{stmt},
+        calculations => [],
       };
+      ($sub->{line}, $sub->{lineno}, $sub->{column}) = main::getlinenocol($self->{stmt}, $sub->{name});
 
-      $self->{scope}->{subroutines}->{$1} = $subroutine;
-      $self->setscope($subroutine);
+      $self->{scope}->{subroutines}->{$1} = $sub;
+      $self->setscope($sub);
       next;
     }
 

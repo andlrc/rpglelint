@@ -1,3 +1,4 @@
+// rpglelint: -Wsubroutine
 dcl-s glob int(10);
 
 exsr my_sub;
