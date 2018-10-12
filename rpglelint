@@ -41,6 +41,17 @@ sub parseopts
         }
         $linter->{rules}->{$option} = $set;
       }
+    },
+    'h|help' => sub {
+      print("Usage rpglelint [OPTIONS]... [FILES]...\n");
+      print("\n");
+      printf("The following warnings are supported:\n");
+      printf("  %s\n", join(", ", sort map({ "-W$_" } keys(%{$linter->{rules}}))));
+      printf("\n");
+      printf("  -Wall  enable all warnings\n");
+      printf("\n");
+      printf("  -h, --help  show this help and exit\n");
+      exit 0;
     }
   ) or exit 2;
 }
