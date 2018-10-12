@@ -381,33 +381,30 @@ sub parse
         # join continuously character literals
         $calc->{token} =~ s{ ' (.*?) ' }{"'" . main::strjoin($1) . "'"}xsmieg;
       }
-      elsif ($calc->{token} =~ m{ $R_BIF }xsmi) {
+      elsif ($calc->{token} =~ m{ ^ $R_BIF $ }xsmi) {
         $calc->{what} = $CALC_BIF;
       }
-      elsif ($calc->{token} =~ m{ $R_SUBF }xsmi) {
+      elsif ($calc->{token} =~ m{ ^ $R_SUBF $ }xsmi) {
         $calc->{what} = $CALC_SUBF;
         $calc->{column}++;
         $calc->{token} = substr($calc->{token}, 1);
         $calc->{ds} = $self->{scope}->{calculations}[-1]->{token};
       }
-      elsif ($calc->{token} =~ m{ $R_IND }xsmi) {
+      elsif ($calc->{token} =~ m{ ^ $R_IND $ }xsmi) {
         $calc->{what} = $CALC_IND;
       }
-      elsif ($calc->{token} =~ m{ $R_NUM }xsmi) {
+      elsif ($calc->{token} =~ m{ ^ $R_NUM $ }xsmi) {
         $calc->{what} = $CALC_NUM;
       }
-      elsif ($calc->{token} =~ m{ $R_OP }xsmi) {
+      elsif ($calc->{token} =~ m{ ^ $R_OP $ }xsmi) {
         $calc->{what} = $CALC_OP;
       }
-      elsif ($calc->{token} =~ m{ $R_IDENT }xsmi) {
+      elsif ($calc->{token} =~ m{ ^ $R_IDENT $ }xsmi) {
         $calc->{what} = $CALC_IDENT;
       }
 
       push(@{$self->{scope}->{calculations}}, $calc);
     }
-
-
-
   }
 
   if ($self->{file} ne "-") {

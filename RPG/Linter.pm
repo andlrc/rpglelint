@@ -40,6 +40,66 @@ my $default_rules = {
   indicator => 0
 };
 
+# utility function to loop over each scope,
+# the provided subroutine will be called with the scopes.
+# i.e the first call will be for the global scope with $scope as the argument,
+# the preceeding calls with be with $proc, $scope as arguments
+sub loopscopes
+{
+  my ($scope, $sub) = @_;
+
+  $sub->($scope);
+
+  for my $procname (keys %{$scope->{procedures}}) {
+    my $proc = $scope->{procedures}->{$procname};
+    $sub->($proc, $scope);
+  }
+
+  return 1;
+}
+
+# returns a hash of all declarations in the current scope,
+# calls $callback is a previous declaration is already defined
+sub declhash
+{
+  my ($decls, $scopes, $callback) = @_;
+  my ($scope) = @{$scopes};
+
+  for (@{$scope->{declarations}}) {
+    my $decl = $decls->{$_->{name}};
+
+    $callback->($_, $decl) if defined $decl && defined $callback;
+
+    if ($_->{what} eq $DCL_DS) {
+      my $qualified = 0;
+      if ($_->{qualified}) {
+        $qualified = 1;
+      }
+      elsif (defined $_->{likeds}) {
+        my $dschain = findlikeds($_->{likeds}, @{$scopes});
+          $qualified = 1 if grep({ $_->{qualified} } @{$dschain});
+      }
+
+      if ($qualified) {
+        $decls->{$_->{name}} = $_;
+      }
+      elsif (defined $_->{fields}) {
+        my $ds = $_;
+        for (@{$_->{fields}}) {
+          my $decl = $decls->{$_->{name}};
+          $callback->($_, $decl) if defined $decl && defined $callback;
+          $decls->{$_->{name}} = $_;
+        }
+      }
+    }
+    else {
+      $decls->{$_->{name}} = $_;
+    }
+  }
+
+  return 1;
+}
+
 sub findlikeds
 {
   my ($ref, @scopes) = @_;
@@ -64,7 +124,7 @@ sub findlikeds
 
 package RPG::Linter::Linter;
 
-sub print
+sub print_unix
 {
   my $self = shift;
   my ($what, $type, $line, $msg) = @_;
@@ -72,17 +132,17 @@ sub print
   if ($type eq $LINT_WARN) {
     printf(STDERR "%s:%d:%d: ${C_WARN}warning:$C_RESET %s [$C_WARN-W%s$C_RESET]\n",
            $line->{file}, $line->{lineno}, $line->{column}, $msg, $what);
-    $self->print_code($type, $line);
+    $self->print_unix_code($type, $line);
   } elsif ($type eq $LINT_NOTE) {
     printf(STDERR "%s:%d:%d: ${C_WARN}note:$C_RESET %s\n",
            $line->{file}, $line->{lineno}, $line->{column}, $msg);
-    $self->print_code($type, $line);
+    $self->print_unix_code($type, $line);
   }
 
   return $self;
 }
 
-sub print_code
+sub print_unix_code
 {
   my $self = shift;
   my ($type, $line, $msg) = @_;
@@ -95,11 +155,14 @@ sub print_code
   }
 
   my $hltext = $line->{line};
+
   my $pre = $line->{column} - 1;
   # (.\w*) is used to support highlighting '*ON' and '%subst'
   $hltext =~ s{ ^ (.{$pre}) (.\w*) }{$1${color}$2$C_RESET}xsmi;
   printf(STDERR " %s", $hltext);
   printf(STDERR "%s${color}^$C_RESET\n", " " x $line->{column});
+
+  return $self;
 }
 
 sub error
@@ -111,6 +174,8 @@ sub error
     what => $what,
     data => \@data
   }) if $data[0]->{file} eq $self->{file};
+
+  return $self;
 }
 
 sub lint
@@ -158,33 +223,35 @@ sub lint
     my ($what, @data) = ($error->{what}, @{$error->{data}});
 
     if ($what eq $RULES_UNDEFREF) {
-      $self->print($what, $LINT_WARN, $data[0], sprintf("'%s' undeclared", $data[0]->{token}));
+      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("'%s' undeclared", $data[0]->{token}));
     }
     elsif ($what eq $RULES_GLOBAL) {
-      $self->print($what, $LINT_WARN, $data[0], sprintf("global declaration '%s' is not allowed", $data[0]->{name}));
+      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("global declaration '%s' is not allowed", $data[0]->{name}));
     }
     elsif ($what eq $RULES_QUALIFIED) {
-      $self->print($what, $LINT_WARN, $data[0], sprintf("data structure '%s' needs to be qualified", $data[0]->{name}));
+      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("data structure '%s' needs to be qualified", $data[0]->{name}));
     }
     elsif ($what eq $RULES_UCCONST) {
-      $self->print($what, $LINT_WARN, $data[0], sprintf("constant '%s' needs to be all uppercase", $data[0]->{name}));
+      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("constant '%s' needs to be all uppercase", $data[0]->{name}));
     }
     elsif ($what eq $RULES_SHADOW) {
-      $self->print($what, $LINT_WARN, $data[0], sprintf("declaration of '%s' shadows a global declaration", $data[0]->{name}));
-      $self->print($what, $LINT_NOTE, $data[1], "shadowed declaration is here");
+      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("declaration of '%s' shadows a global declaration", $data[0]->{name}));
+      $self->print_unix($what, $LINT_NOTE, $data[1], "shadowed declaration is here");
     }
     elsif ($what eq $RULES_SUBROUTINE) {
-      $self->print($what, $LINT_WARN, $data[0], sprintf("subroutine '%s' is not allowed", $data[0]->{name}));
+      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("subroutine '%s' is not allowed", $data[0]->{name}));
     }
     elsif ($what eq $RULES_UCINDICATOR) {
-      $self->print($what, $LINT_WARN, $data[0], sprintf("indicator '%s' needs to be all uppercase", $data[0]->{token}));
+      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("indicator '%s' needs to be all uppercase", $data[0]->{token}));
     }
     elsif ($what eq $RULES_INDICATOR) {
-      $self->print($what, $LINT_WARN, $data[0], sprintf("indicator '%s' is not allowed", $data[0]->{token}));
+      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("indicator '%s' is not allowed", $data[0]->{token}));
     } else {
       die "unknown lint message";
     }
   }
+
+  return $self;
 }
 
 sub lint_global
@@ -198,6 +265,8 @@ sub lint_global
       $self->error($RULES_GLOBAL, $_);
     }
   }
+
+  return $self;
 }
 
 sub lint_shadow
@@ -208,9 +277,8 @@ sub lint_shadow
   my $gdecls = undef;
   my $decls = undef;
 
-  $self->loopscopes($scope, sub {
+  main::loopscopes($scope, sub {
     my @scopes = @_;
-    my ($scope) = @scopes;
 
     if (defined $gdecls) {
       $decls = { %{$gdecls} };
@@ -219,37 +287,13 @@ sub lint_shadow
       $decls = $gdecls;
     }
 
-    for (@{$scope->{declarations}}) {
-      my $decl = $decls->{$_->{name}};
-
-      $self->error($RULES_SHADOW, $_, $decl) if defined $decl;
-
-      if ($_->{what} eq $DCL_DS) {
-        my $qualified = 0;
-        if ($_->{qualified}) {
-          $qualified = 1;
-        } elsif (defined $_->{likeds}) {
-          my $dschain = main::findlikeds($_->{likeds}, @scopes);
-          if (grep({ $_->{qualified} } @{$dschain})) {
-            $qualified = 1;
-          }
-        }
-
-        if ($qualified) {
-          $decls->{$_->{name}} = $_;
-        } elsif (defined $_->{fields}) {
-          my $ds = $_;
-          for (@{$_->{fields}}) {
-            my $decl = $decls->{$_->{name}};
-            $self->error($RULES_SHADOW, $_, $decl) if defined $decl;
-            $decls->{$_->{name}} = $_;
-          }
-        }
-      } else {
-        $decls->{$_->{name}} = $_;
-      }
-    }
+    main::declhash($decls, \@scopes, sub {
+      my ($decl, $prevdecl) = @_;
+      $self->error($RULES_SHADOW, $decl, $prevdecl);
+    });
   });
+
+  return $self;
 }
 
 sub lint_qualified
@@ -257,7 +301,7 @@ sub lint_qualified
   my $self = shift;
   my ($scope) = @_;
 
-  $self->loopscopes($scope, sub {
+  main::loopscopes($scope, sub {
     my @scopes = @_;
     my ($scope) = @scopes;
 
@@ -274,6 +318,8 @@ sub lint_qualified
       }
     }
   });
+
+  return $self;
 }
 
 sub lint_ucconst
@@ -281,7 +327,7 @@ sub lint_ucconst
   my $self = shift;
   my ($scope) = @_;
 
-  $self->loopscopes($scope, sub {
+  main::loopscopes($scope, sub {
       my ($scope) = @_;
 
       for (@{$scope->{declarations}}) {
@@ -292,6 +338,8 @@ sub lint_ucconst
         }
       }
   });
+
+  return $self;
 }
 
 sub lint_undefref
@@ -302,7 +350,7 @@ sub lint_undefref
   my $gdecls = undef;
   my $decls = undef;
 
-  $self->loopscopes($scope, sub {
+  main::loopscopes($scope, sub {
     my @scopes = @_;
     my ($scope) = @scopes;
 
@@ -313,36 +361,7 @@ sub lint_undefref
       $decls = $gdecls;
     }
 
-    # build hash of global and global+local declarations
-    # copied from "lint_shadow"
-    # TODO: Join to one procedure
-    for (@{$scope->{declarations}}) {
-      my $decl = $decls->{$_->{name}};
-
-      if ($_->{what} eq $DCL_DS) {
-        my $qualified = 0;
-        if ($_->{qualified}) {
-          $qualified = 1;
-        } elsif (defined $_->{likeds}) {
-          my $dschain = main::findlikeds($_->{likeds}, @scopes);
-          if (grep({ $_->{qualified} } @{$dschain})) {
-            $qualified = 1;
-          }
-        }
-
-        if ($qualified) {
-          $decls->{$_->{name}} = $_;
-        } elsif (defined $_->{fields}) {
-          my $ds = $_;
-          for (@{$_->{fields}}) {
-            my $decl = $decls->{$_->{name}};
-            $decls->{$_->{name}} = $_;
-          }
-        }
-      } else {
-        $decls->{$_->{name}} = $_;
-      }
-    }
+    main::declhash($decls, \@scopes);
 
     # check if a likeds is found
     for (@{$scope->{declarations}}) {
@@ -360,8 +379,9 @@ sub lint_undefref
     for (@{$scope->{calculations}}) {
       if ($_->{what} eq $CALC_IDENT) {
         # check if ident is defined
-        $self->error($RULES_UNDEFREF, $_) unless $decls->{$_->{token}};
-      } elsif ($_->{what} eq $CALC_SUBF) {
+        $self->error($RULES_UNDEFREF, $_) unless defined $decls->{$_->{token}};
+      }
+      elsif ($_->{what} eq $CALC_SUBF) {
         # check to see if the subf is part of the ds
         my $token = $_->{token};
         my $dschain = main::findlikeds($_->{ds}, @scopes);
@@ -373,6 +393,8 @@ sub lint_undefref
       }
     }
   });
+
+  return $self;
 }
 
 sub lint_subroutine
@@ -380,14 +402,16 @@ sub lint_subroutine
   my $self = shift;
   my ($scope) = @_;
 
-  $self->loopscopes($scope, sub {
-      my ($scope) = @_;
+  main::loopscopes($scope, sub {
+    my ($scope) = @_;
 
-      for (keys %{$scope->{subroutines}}) {
-        my $sub = $scope->{subroutines}->{$_};
-        $self->error($RULES_SUBROUTINE, $sub);
-      }
+    for (keys %{$scope->{subroutines}}) {
+      my $sub = $scope->{subroutines}->{$_};
+      $self->error($RULES_SUBROUTINE, $sub);
+    }
   });
+
+  return $self;
 }
 
 sub lint_ucindicator
@@ -395,17 +419,19 @@ sub lint_ucindicator
   my $self = shift;
   my ($scope) = @_;
 
-  $self->loopscopes($scope, sub {
-      my ($scope) = @_;
+  main::loopscopes($scope, sub {
+    my ($scope) = @_;
 
-      for (@{$scope->{calculations}}) {
-        if ($_->{what} eq $CALC_IND) {
-          next if uc $_->{token} eq $_->{token};
+    for (@{$scope->{calculations}}) {
+      if ($_->{what} eq $CALC_IND) {
+        next if uc $_->{token} eq $_->{token};
 
-          $self->error($RULES_UCINDICATOR, $_);
-        }
+        $self->error($RULES_UCINDICATOR, $_);
       }
+    }
   });
+
+  return $self;
 }
 
 sub lint_indicator
@@ -413,35 +439,20 @@ sub lint_indicator
   my $self = shift;
   my ($scope) = @_;
 
-  $self->loopscopes($scope, sub {
-      my ($scope) = @_;
+  main::loopscopes($scope, sub {
+    my ($scope) = @_;
 
-      for (@{$scope->{calculations}}) {
-        if ($_->{what} eq $CALC_IND) {
-          # Allow *ON, *OFF, *NULL, *BLANK, and *BLANKS
-          next if $_->{token} =~ m{ \* (?: ON | OFF | NULL | BLANK | BLANKS ) }xsmi;
+    for (@{$scope->{calculations}}) {
+      if ($_->{what} eq $CALC_IND) {
+        # Allow *ON, *OFF, *NULL, *BLANK, and *BLANKS
+        next if $_->{token} =~ m{ \* (?: ON | OFF | NULL | BLANK | BLANKS ) }xsmi;
 
-          $self->error($RULES_INDICATOR, $_);
-        }
+        $self->error($RULES_INDICATOR, $_);
       }
+    }
   });
-}
 
-# utility function to loop over each scope,
-# the provided subroutine will be called with the scopes.
-# i.e the first call will be for the global scope with $scope as the argument,
-# the preceeding calls with be with $proc, $scope as arguments
-sub loopscopes
-{
-  my $self = shift;
-  my ($scope, $sub) = @_;
-
-  $sub->($scope);
-
-  for my $procname (keys %{$scope->{procedures}}) {
-    my $proc = $scope->{procedures}->{$procname};
-    $sub->($proc, $scope);
-  }
+  return $self;
 }
 
 sub new
@@ -455,3 +466,5 @@ sub new
 
   return $self;
 }
+
+1;
