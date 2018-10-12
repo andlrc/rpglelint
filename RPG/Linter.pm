@@ -11,6 +11,7 @@ my $DCL_C = 'dcl-c';
 
 my $CALC_IDENT = 'ident';
 my $CALC_SUBF = 'subf';
+my $CALC_IND = 'ind';
 
 my $C_WARN = -t 2 ? "\033[1;35m" : '';
 my $C_NOTE = -t 2 ? "\033[1;36m" : '';
@@ -25,6 +26,8 @@ my $RULES_QUALIFIED = "qualified";
 my $RULES_UCCONST = "ucconst";
 my $RULES_UNDEFREF = "undefref";
 my $RULES_SUBROUTINE = "subroutine";
+my $RULES_UCINDICATOR = "ucindicator";
+my $RULES_INDICATOR = "indicator";
 
 my $default_rules = {
   global => 0,
@@ -32,7 +35,9 @@ my $default_rules = {
   qualified => 0,
   ucconst => 0,
   undefref => 0,
-  subroutine => 0
+  subroutine => 0,
+  ucindicator => 0,
+  indicator => 0
 };
 
 sub findlikeds
@@ -91,7 +96,8 @@ sub print_code
 
   my $hltext = $line->{line};
   my $pre = $line->{column} - 1;
-  $hltext =~ s{ (.{$pre}) (\w+) }{$1${color}$2$C_RESET}xsmi;
+  # (.\w*) is used to support highlighting '*ON' and '%subst'
+  $hltext =~ s{ ^ (.{$pre}) (.\w*) }{$1${color}$2$C_RESET}xsmi;
   printf(STDERR " %s", $hltext);
   printf(STDERR "%s${color}^$C_RESET\n", " " x $line->{column});
 }
@@ -138,6 +144,14 @@ sub lint
     $self->lint_subroutine($scope);
   }
 
+  if ($self->{rules}->{$RULES_UCINDICATOR}) {
+    $self->lint_ucindicator($scope);
+  }
+
+  if ($self->{rules}->{$RULES_INDICATOR}) {
+    $self->lint_indicator($scope);
+  }
+
   for my $error (sort {
       $a->{data}[0]->{lineno} <=> $b->{data}[0]->{lineno};
     } @{$self->{linterrors}}) {
@@ -161,6 +175,12 @@ sub lint
     }
     elsif ($what eq $RULES_SUBROUTINE) {
       $self->print($what, $LINT_WARN, $data[0], sprintf("subroutine '%s' is not allowed", $data[0]->{name}));
+    }
+    elsif ($what eq $RULES_UCINDICATOR) {
+      $self->print($what, $LINT_WARN, $data[0], sprintf("indicator '%s' needs to be all uppercase", $data[0]->{token}));
+    }
+    elsif ($what eq $RULES_INDICATOR) {
+      $self->print($what, $LINT_WARN, $data[0], sprintf("indicator '%s' is not allowed", $data[0]->{token}));
     } else {
       die "unknown lint message";
     }
@@ -366,6 +386,43 @@ sub lint_subroutine
       for (keys %{$scope->{subroutines}}) {
         my $sub = $scope->{subroutines}->{$_};
         $self->error($RULES_SUBROUTINE, $sub);
+      }
+  });
+}
+
+sub lint_ucindicator
+{
+  my $self = shift;
+  my ($scope) = @_;
+
+  $self->loopscopes($scope, sub {
+      my ($scope) = @_;
+
+      for (@{$scope->{calculations}}) {
+        if ($_->{what} eq $CALC_IND) {
+          next if uc $_->{token} eq $_->{token};
+
+          $self->error($RULES_UCINDICATOR, $_);
+        }
+      }
+  });
+}
+
+sub lint_indicator
+{
+  my $self = shift;
+  my ($scope) = @_;
+
+  $self->loopscopes($scope, sub {
+      my ($scope) = @_;
+
+      for (@{$scope->{calculations}}) {
+        if ($_->{what} eq $CALC_IND) {
+          # Allow *ON, *OFF, *NULL, *BLANK, and *BLANKS
+          next if $_->{token} =~ m{ \* (?: ON | OFF | NULL | BLANK | BLANKS ) }xsmi;
+
+          $self->error($RULES_INDICATOR, $_);
+        }
       }
   });
 }

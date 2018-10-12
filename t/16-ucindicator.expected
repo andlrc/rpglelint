@@ -1,0 +1,15 @@
+t/16-ucindicator.rpgle:2:8: warning: indicator '*oN' needs to be all uppercase [-Wucindicator]
+ if a = *oN;
+        ^
+t/16-ucindicator.rpgle:3:7: warning: indicator '*OfF' needs to be all uppercase [-Wucindicator]
+   b = *OfF;
+       ^
+t/16-ucindicator.rpgle:5:7: warning: indicator '*NUll' needs to be all uppercase [-Wucindicator]
+   c = *NUll;
+       ^
+t/16-ucindicator.rpgle:7:8: warning: indicator '*blank' needs to be all uppercase [-Wucindicator]
+ if d = *blank and e = *blanks;
+        ^
+t/16-ucindicator.rpgle:7:23: warning: indicator '*blank' needs to be all uppercase [-Wucindicator]
+ if d = *blank and e = *blanks;
+                       ^

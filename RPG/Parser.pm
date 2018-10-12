@@ -17,6 +17,7 @@ my $CALC_BIF = 'bif';
 my $CALC_IDENT = 'ident';
 my $CALC_SUBF = 'subf';
 my $CALC_NUM = 'num';
+my $CALC_IND = 'ind';
 my $CALC_OP = 'op';
 
 my $R_IDENT = '(?! \d ) \w+';
@@ -31,6 +32,7 @@ my $R_NUM = '\d+';
 my $R_SUBF = '\. '. $R_IDENT;
 my $R_OP = '(?:<> | >= | <= | > | < | = | \+= | -= | \+ | - | or | and | not)';
 my $R_BIF = '% ' . $R_IDENT;
+my $R_IND = '\* (?: ON | OFF | NULL | BLANK | BLANKS | IN[0-0][0-9] | INH[1-9] | INL[1-9] | INLR | INU[1-8] | INRT )';
 
 sub strjoin
 {
@@ -355,7 +357,7 @@ sub parse
     }
 
     my $startlineno = $. - (() = $self->{stmt} =~ m{ \n }xsmig) + 1;
-    while (my $kw = $self->{stmt} =~ m{ ( $R_STR | $R_BIF | $R_SUBF | $R_IDENT | $R_NUM | $R_OP ) }xsmigp) {
+    while (my $kw = $self->{stmt} =~ m{ ( $R_STR | $R_BIF | $R_SUBF | $R_IDENT | $R_NUM | $R_IND | $R_OP ) }xsmigp) {
       my @prelines = split(/\n/, ${^PREMATCH});
       my $calc = {
         file => $self->{file},
@@ -388,14 +390,17 @@ sub parse
         $calc->{token} = substr($calc->{token}, 1);
         $calc->{ds} = $self->{scope}->{calculations}[-1]->{token};
       }
-      elsif ($calc->{token} =~ m{ $R_IDENT }xsmi) {
-        $calc->{what} = $CALC_IDENT;
+      elsif ($calc->{token} =~ m{ $R_IND }xsmi) {
+        $calc->{what} = $CALC_IND;
       }
       elsif ($calc->{token} =~ m{ $R_NUM }xsmi) {
         $calc->{what} = $CALC_NUM;
       }
       elsif ($calc->{token} =~ m{ $R_OP }xsmi) {
         $calc->{what} = $CALC_OP;
+      }
+      elsif ($calc->{token} =~ m{ $R_IDENT }xsmi) {
+        $calc->{what} = $CALC_IDENT;
       }
 
       push(@{$self->{scope}->{calculations}}, $calc);
