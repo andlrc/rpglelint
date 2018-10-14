@@ -4,8 +4,6 @@ use v5.16;
 
 use Exporter;
 
-our @EXPORT_OK = qw{ parse };
-
 my $DCL_PROC = 'dcl-proc';
 my $DCL_PR = 'dcl-pr';
 my $DCL_S = 'dcl-s';
