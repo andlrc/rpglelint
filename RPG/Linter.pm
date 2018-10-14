@@ -48,7 +48,7 @@ my $default_rules = {
 # utility function to loop over each scope,
 # the provided subroutine will be called with the scopes.
 # i.e the first call will be for the global scope with $scope as the argument,
-# the preceeding calls with be with $proc, $scope as arguments
+# the preceding calls with be with '($proc, $scope)' as arguments
 sub loopscopes
 {
   my ($scope, $sub) = @_;
@@ -389,7 +389,7 @@ sub lint_undefined_reference
 
     main::declhash($decls, \@scopes);
 
-    # check if a likeds is found
+    # check if a 'likeds' is found
     for (@{$scope->{declarations}}) {
       next unless $_->{what} eq $DCL_DS;
       next unless defined $_->{likeds};
@@ -404,11 +404,11 @@ sub lint_undefined_reference
 
     for (@{$scope->{calculations}}) {
       if ($_->{what} eq $CALC_IDENT) {
-        # check if ident is defined
+        # check if identifier is defined
         $self->error($RULES_UNDEFINED_REFERENCE, $_) unless defined $decls->{$_->{token}};
       }
       elsif ($_->{what} eq $CALC_SUBF) {
-        # check to see if the subf is part of the ds
+        # check to see if the subfield is part of the data structure
         my $token = $_->{token};
         my $dschain = main::findlikeds($_->{ds}, @scopes);
         my $ds = $dschain->[-1];
@@ -502,7 +502,7 @@ sub lint_unused_variable
 
     main::declhash($decls, \@scopes);
 
-    # check if a likeds is found
+    # check if a 'likeds' is found
     for (@{$scope->{declarations}}) {
       next unless $_->{what} eq $DCL_DS;
       next unless defined $_->{likeds};
@@ -520,7 +520,7 @@ sub lint_unused_variable
 
       next if $decl->{what} ne $DCL_SUBF and $decl->{what} ne $DCL_S;
 
-      # skip dcl-subf for now as we don't have control of qualified, and likeds
+      # skip 'dcl-subf' for now as we don't have control of qualified, and 'likeds'
       # with qualified.
       next if $decl->{what} eq $DCL_SUBF;
 
