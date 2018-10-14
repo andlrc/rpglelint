@@ -1,0 +1,3 @@
+t/22-unreachcode.rpgle:15:5: warning: code will never be executed [-Wunreachable-code]
+     a = 1;
+     ^

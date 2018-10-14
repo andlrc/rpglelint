@@ -1,0 +1,6 @@
+t/19-shadow-pr.rpgle:6:9: warning: declaration of 'pr1' shadows a global declaration [-Wshadow]
+   dcl-s pr1 int(10);
+         ^
+t/19-shadow-pr.rpgle:3:8: note: shadowed declaration is here
+ dcl-pr pr1;
+        ^

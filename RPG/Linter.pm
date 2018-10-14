@@ -13,6 +13,7 @@ my $DCL_SUBF = 'dcl-subf';
 my $CALC_IDENT = 'ident';
 my $CALC_SUBF = 'subf';
 my $CALC_IND = 'ind';
+my $CALC_OPCODE = 'opcode';
 
 my $C_WARN = -t 2 ? "\033[1;35m" : '';
 my $C_NOTE = -t 2 ? "\033[1;36m" : '';
@@ -31,6 +32,7 @@ my $RULES_UPPERCASE_INDICATOR = "uppercase-indicator";
 my $RULES_INDICATOR = "indicator";
 my $RULES_UNUSED_VARIABLE = "unused-variable";
 my $RULES_REDEFINING_SYMBOL = "redefining-symbol";
+my $RULES_UNREACHABLE_CODE = "unreachable-code";
 
 my $default_rules = {
   global => 0,
@@ -42,7 +44,8 @@ my $default_rules = {
   'uppercase-indicator' => 0,
   indicator => 0,
   'unused-variable' => 0,
-  'redefining-symbol' => 0
+  'redefining-symbol' => 0,
+  'unreachable-code' => 0
 };
 
 # utility function to loop over each scope,
@@ -237,6 +240,10 @@ sub lint
     $self->lint_redefining_symbol($scope);
   }
 
+  if ($self->{rules}->{$RULES_UNREACHABLE_CODE}) {
+    $self->lint_unreachable_code($scope);
+  }
+
   for my $error (sort {
       $a->{data}[0]->{lineno} <=> $b->{data}[0]->{lineno};
     } @{$self->{linterrors}}) {
@@ -273,7 +280,11 @@ sub lint
     elsif ($what eq $RULES_REDEFINING_SYMBOL) {
       $self->print_unix($what, $LINT_WARN, $data[0], sprintf("redefinition of '%s' as a different kind of symbol", $data[0]->{name}));
       $self->print_unix($what, $LINT_NOTE, $data[1], "previous definition is here");
-    } else {
+    }
+    elsif ($what eq $RULES_UNREACHABLE_CODE) {
+      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("code will never be executed"));
+    }
+    else {
       die "unknown lint message";
     }
   }
@@ -543,6 +554,148 @@ sub lint_redefining_symbol
       my ($decl, $prevdecl) = @_;
       $self->error($RULES_REDEFINING_SYMBOL, $decl, $prevdecl);
     });
+  });
+
+  return $self;
+}
+
+sub lint_unreachable_code
+{
+  my $self = shift;
+  my ($scope) = @_;
+
+  # here be dragons
+  my $checkcalcs;
+
+  my $exsrstmt = sub {
+    my ($scope, $calcs, $preturned) = @_;
+    my $calc = shift(@{$calcs});
+    my $subname = $calc->{token};
+    my $sub = $scope->{subroutines}->{$subname};
+
+    my $subcalcs = [ @{$sub->{calculations}} ];
+    while (my $calc = shift(@{$subcalcs})) {
+      my $unreached = $checkcalcs->($scope, $calc, $subcalcs, $preturned);
+      if (defined $unreached) {
+        return $unreached;
+      }
+    }
+
+    return undef;
+  };
+
+  my $branchstmt = sub {
+    my ($scope, $calcs, $end, $mid, $exit, $preturned) = @_;
+    my $calc = $calcs->[0];
+    my $r_mid = '^ (?: ' . join('|', @{$mid}) . ') $';
+    my $r_end = '^ ' . $end . ' $';
+    my $r_exit = '^ (?: ' . join('|', @{$exit}) . ') $';
+
+    outer: while (my $calc = shift(@{$calcs})) {
+      if ($calc->{token} =~ m{ $r_exit }xsmi) {
+        while (my $nextcalc = shift(@{$calcs})) {
+          if ($calc->{stmt} ne $nextcalc->{stmt}) {
+            if ($nextcalc->{token} =~ m{ $r_mid }xsmi) {
+              ${$preturned} = 0;
+              next outer;
+            }
+            if ($nextcalc->{token} =~ m{ $r_end }xsmi) {
+              while (my $nextcalc = shift(@{$calcs})) {
+                if ($calc->{stmt} ne $nextcalc->{stmt}) {
+                  unshift(@{$calcs}, $nextcalc);
+                  return undef;
+                }
+              }
+              return undef;
+            }
+            return $nextcalc;
+          }
+        }
+      }
+
+      if ($calc->{token} =~ m{ ^ $r_end $ }xsmi) {
+        while (my $nextcalc = shift(@{$calcs})) {
+          if ($calc->{stmt} ne $nextcalc->{stmt}) {
+            unshift(@{$calcs}, $nextcalc);
+            return undef;
+          }
+        }
+        return undef;
+      }
+      else {
+        my $unreached = $checkcalcs->($scope, $calc, $calcs, $preturned);
+        if (defined $unreached) {
+          if ($unreached->{token} !~ m{ $r_mid | $r_end }xsmi) {
+            return $unreached;
+          }
+        }
+      }
+    }
+
+    return undef;
+  };
+
+  $checkcalcs = sub {
+    my ($scope, $calc, $calcs, $preturned) = @_;
+
+    return undef unless defined $calc;
+    return undef if $calc->{what} ne $CALC_OPCODE;
+
+    if ($calc->{token} =~ m{ ^ if $ }xsmi) {
+      return $branchstmt->($scope, $calcs, 'endif', ['else', 'elseif'], ['return'], $preturned);
+    }
+    elsif ($calc->{token} =~ m{ ^ select $ }xsmi) {
+      return $branchstmt->($scope, $calcs, 'endsl', ['when', 'other'], ['return'], $preturned);
+    }
+    elsif ($calc->{token} =~ m{ ^ do[wu] $ }xsmi) {
+      return $branchstmt->($scope, $calcs, 'enddo', [], ['return', 'iter', 'leave'], $preturned);
+    }
+    elsif ($calc->{token} =~ m{ ^ for $ }xsmi) {
+      return $branchstmt->($scope, $calcs, 'endfor', [], ['return', 'iter', 'leave'], $preturned);
+    }
+    elsif ($calc->{token} =~ m{ ^ monitor $ }xsmi) {
+      return $branchstmt->($scope, $calcs, 'endmon', ['on-error'], ['return'], $preturned);
+    }
+    elsif ($calc->{token} =~ m{ ^ exsr $ }xsmi) {
+      my $unreached = $exsrstmt->($scope, $calcs, $preturned);
+      return $unreached if defined $unreached;
+
+      # FIXME: allow every branch word i.e 'else', 'elseif', and 'endif' when in
+      # an 'if' branch.
+      if (${$preturned}) {
+        while (my $nextcalc = shift(@{$calcs})) {
+          if ($calc->{stmt} ne $nextcalc->{stmt}) {
+            return $nextcalc;
+          }
+        }
+      }
+      return undef;
+    }
+    elsif ($calc->{token} =~ m{ ^ return $ }xsmi) {
+      ${$preturned} = 1;
+      while (my $nextcalc = shift(@{$calcs})) {
+        if ($calc->{stmt} ne $nextcalc->{stmt}) {
+          return $nextcalc;
+        }
+      }
+    }
+
+    return undef;
+  };
+
+  main::loopscopes($scope, sub {
+    my @scopes = @_;
+    my ($scope) = @scopes;
+
+    my $calcs = [ @{$scope->{calculations}} ];
+    while (my $calc = shift(@{$calcs})) {
+      my $returned = 0;
+      my $unreached = $checkcalcs->($scope, $calc, $calcs, \$returned);
+      if (defined $unreached) {
+        $self->error($RULES_UNREACHABLE_CODE, $unreached);
+        last;
+      }
+    }
   });
 
   return $self;

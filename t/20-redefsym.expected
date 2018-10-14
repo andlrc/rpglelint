@@ -1,0 +1,12 @@
+t/20-redefsym.rpgle:4:7: warning: redefinition of 'a' as a different kind of symbol [-Wredefining-symbol]
+ dcl-s a varchar(32);
+       ^
+t/20-redefsym.rpgle:3:7: note: previous definition is here
+ dcl-s a int(10);
+       ^
+t/20-redefsym.rpgle:9:9: warning: redefinition of 'c' as a different kind of symbol [-Wredefining-symbol]
+   dcl-s c varchar(32);
+         ^
+t/20-redefsym.rpgle:8:9: note: previous definition is here
+   dcl-s c int(10);
+         ^

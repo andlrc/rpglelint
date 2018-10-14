@@ -1,0 +1,12 @@
+t/21-unreachcode.rpgle:5:3: warning: code will never be executed [-Wunreachable-code]
+   a = 1;
+   ^
+t/21-unreachcode.rpgle:47:3: warning: code will never be executed [-Wunreachable-code]
+   a = 2;
+   ^
+t/21-unreachcode.rpgle:61:5: warning: code will never be executed [-Wunreachable-code]
+     a = 2;
+     ^
+t/21-unreachcode.rpgle:68:5: warning: code will never be executed [-Wunreachable-code]
+     a = 2;
+     ^

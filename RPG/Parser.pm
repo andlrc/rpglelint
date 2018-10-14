@@ -36,7 +36,7 @@ my $R_OPCODE = '(?: \b select \b | \b when \b | \b other \b | \b endsl \b'
              . '  | \b if \b | \b elseif \b | \b else \b | \b endif \b'
              . '  | \b or \b | \b and \b | \b not \b'
              . '  | \b do[uw] \b | \b iter \b | \b leave \b | \b enddo \b'
-             . '  | \b for | \b endfor \b'
+             . '  | \b for \b | \b endfor \b'
              . '  | \b begsr \b | \b exsr \b | \b leavesr \b | \b endsr \b'
              . '  | \b monitor \b | \b on-error \b | \b endmon \b'
              . '  | \b return \b)';
@@ -266,6 +266,7 @@ sub parse
     # dcl-proc
     if ($self->{stmt} =~ m{ ^ \s* dcl-proc \s+ ($R_IDENT) ( \s+ export )? }xsmi) {
       my $proc = {
+        file => $self->{file},
         what => $DCL_PROC,
         name => $1,
         exported => defined $2,

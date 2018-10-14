@@ -8,6 +8,7 @@ The following warnings are supported:
   -Wshadow,
   -Wsubroutine,
   -Wundefined-reference,
+  -Wunreachable-code,
   -Wunused-variable,
   -Wuppercase-constant,
   -Wuppercase-indicator,
