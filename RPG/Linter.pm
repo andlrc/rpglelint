@@ -96,10 +96,15 @@ sub declhash
     }
   }
 
-  for my $procname (keys %{$scope->{procedures}}) {
-    my $proc = $scope->{procedures}->{$procname};
-    $adddecl->($procname, $proc);
-    $adddecl->($_->{name}, $_) for (@{$proc->{parameters}});
+  if (defined $scope->{procedures}) {
+    for my $procname (keys %{$scope->{procedures}}) {
+      my $proc = $scope->{procedures}->{$procname};
+      $adddecl->($procname, $proc);
+    }
+  }
+
+  if (defined $scope->{parameters}) {
+    $adddecl->($_->{name}, $_) for (@{$scope->{parameters}});
   }
 
   return 1;

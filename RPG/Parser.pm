@@ -267,16 +267,18 @@ sub parse
 
     # dcl-proc
     if ($self->{stmt} =~ m{ ^ \s* dcl-proc \s+ ($R_IDENT) ( \s+ export )? }xsmi) {
-      my $currentproc = {
+      my $proc = {
         what => $DCL_PROC,
+        name => $1,
         exported => defined $2,
         declarations => [],
         calculations => [],
         subroutines => {}
       };
+      ($proc->{line}, $proc->{lineno}, $proc->{column}) = main::getlinenocol($self->{stmt}, $proc->{name});
 
-      $self->{scope}->{procedures}->{$1} = $currentproc;
-      $self->setscope($currentproc);
+      $self->{scope}->{procedures}->{$1} = $proc;
+      $self->setscope($proc);
       next;
     }
 
