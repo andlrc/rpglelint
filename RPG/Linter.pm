@@ -15,9 +15,12 @@ my $CALC_SUBF = 'subf';
 my $CALC_IND = 'ind';
 my $CALC_OPCODE = 'opcode';
 
-my $C_WARN = -t 2 ? "\033[1;35m" : '';
-my $C_NOTE = -t 2 ? "\033[1;36m" : '';
-my $C_RESET = -t 2 ? "\033[0m" : '';
+my $FORMAT_UNIX = 'unix';
+my $FORMAT_JSON = 'json';
+
+my $C_WARN = -t 1 ? "\033[1;35m" : '';
+my $C_NOTE = -t 1 ? "\033[1;36m" : '';
+my $C_RESET = -t 1 ? "\033[0m" : '';
 
 my $LINT_NOTE = "note";
 my $LINT_WARN = "warning";
@@ -47,6 +50,15 @@ my $default_rules = {
   'redefining-symbol' => 0,
   'unreachable-code' => 0
 };
+
+sub sorterrors($$)
+{
+  my ($a, $b) = @_;
+  my $ano = defined $a->{linksto} ? $a->{linksto}->{lineno} + 0.1 : $a->{lineno};
+  my $bno = defined $b->{linksto} ? $b->{linksto}->{lineno} + 0.1 : $b->{lineno};
+
+  return $ano <=> $bno;
+}
 
 # utility function to loop over each scope,
 # the provided subroutine will be called with the scopes.
@@ -142,16 +154,19 @@ package RPG::Linter;
 sub print_unix
 {
   my $self = shift;
-  my ($what, $type, $line, $msg) = @_;
+  my (@errors) = @_;
 
-  if ($type eq $LINT_WARN) {
-    printf(STDERR "%s:%d:%d: ${C_WARN}warning:$C_RESET %s [$C_WARN-W%s$C_RESET]\n",
-           $line->{file}, $line->{lineno}, $line->{column}, $msg, $what);
-    $self->print_unix_code($type, $line);
-  } elsif ($type eq $LINT_NOTE) {
-    printf(STDERR "%s:%d:%d: ${C_NOTE}note:$C_RESET %s\n",
-           $line->{file}, $line->{lineno}, $line->{column}, $msg);
-    $self->print_unix_code($type, $line);
+  for my $error (@errors) {
+    if ($error->{type} eq $LINT_WARN) {
+      printf("%s:%d:%d: ${C_WARN}warning:$C_RESET %s [$C_WARN-W%s$C_RESET]\n",
+             $error->{file}, $error->{lineno}, $error->{column}, $error->{msg}, $error->{what});
+      $self->print_unix_code($error);
+    }
+    elsif ($error->{type} eq $LINT_NOTE) {
+      printf("%s:%d:%d: ${C_NOTE}note:$C_RESET %s\n",
+             $error->{file}, $error->{lineno}, $error->{column}, $error->{msg});
+      $self->print_unix_code($error);
+    }
   }
 
   return $self;
@@ -160,22 +175,32 @@ sub print_unix
 sub print_unix_code
 {
   my $self = shift;
-  my ($type, $line, $msg) = @_;
+  my ($error) = @_;
   my $color = '';
 
-  if ($type eq $LINT_WARN) {
+  if ($error->{type} eq $LINT_WARN) {
     $color = $C_WARN;
-  } elsif ($type eq $LINT_NOTE) {
+  } elsif ($error->{type} eq $LINT_NOTE) {
     $color = $C_NOTE;
   }
 
-  my $hltext = $line->{line};
+  my $hltext = $error->{line};
 
-  my $pre = $line->{column} - 1;
+  my $pre = $error->{column} - 1;
   # (.\w*) is used to support highlighting '*ON' and '%subst'
   $hltext =~ s{ ^ (.{$pre}) (.\w*) }{$1${color}$2$C_RESET}xsmi;
-  printf(STDERR " %s", $hltext);
-  printf(STDERR "%s${color}^$C_RESET\n", " " x $line->{column});
+  printf(" %s", $hltext);
+  printf("%s${color}^$C_RESET\n", " " x $error->{column});
+
+  return $self;
+}
+
+sub print_json
+{
+  my $self = shift;
+  my (@errors) = @_;
+
+  die "WIP - JSON not supported yet";
 
   return $self;
 }
@@ -185,10 +210,64 @@ sub error
   my $self = shift;
   my ($what, @data) = @_;
 
-  push(@{$self->{linterrors}}, {
-    what => $what,
-    data => \@data
-  }) if $data[0]->{file} eq $self->{file};
+  return unless $data[0]->{file} eq $self->{file};
+
+  my $adderr = sub {
+    my ($what, $type, $msg, $data) = @_;
+    my $err = {
+      what => $what,
+      type => $type,
+      file => $data->{file},
+      line => $data->{line},
+      lineno => $data->{lineno},
+      column => $data->{column},
+      msg => $msg
+    };
+    push(@{$self->{linterrors}}, $err);
+
+    return $err;
+  };
+
+  if ($what eq $RULES_UNDEFINED_REFERENCE) {
+    $adderr->($what, $LINT_WARN, sprintf("'%s' undeclared", $data[0]->{token}), $data[0]);
+  }
+  elsif ($what eq $RULES_GLOBAL) {
+    $adderr->($what, $LINT_WARN, sprintf("global declaration '%s' is not allowed", $data[0]->{name}), $data[0]);
+  }
+  elsif ($what eq $RULES_QUALIFIED) {
+    $adderr->($what, $LINT_WARN, sprintf("data structure '%s' needs to be qualified", $data[0]->{name}), $data[0]);
+  }
+  elsif ($what eq $RULES_UPPERCASE_CONSTANT) {
+    $adderr->($what, $LINT_WARN, sprintf("constant '%s' needs to be all uppercase", $data[0]->{name}), $data[0]);
+  }
+  elsif ($what eq $RULES_SHADOW) {
+    my $error = $adderr->($what, $LINT_WARN, sprintf("declaration of '%s' shadows a global declaration", $data[0]->{name}), $data[0]);
+    my $note = $adderr->($what, $LINT_NOTE, "shadowed declaration is here", $data[1]);
+    $note->{linksto} = $error;
+  }
+  elsif ($what eq $RULES_SUBROUTINE) {
+    $adderr->($what, $LINT_WARN, sprintf("subroutine '%s' is not allowed", $data[0]->{name}), $data[0]);
+  }
+  elsif ($what eq $RULES_UPPERCASE_INDICATOR) {
+    $adderr->($what, $LINT_WARN, sprintf("indicator '%s' needs to be all uppercase", $data[0]->{token}), $data[0]);
+  }
+  elsif ($what eq $RULES_INDICATOR) {
+    $adderr->($what, $LINT_WARN, sprintf("indicator '%s' is not allowed", $data[0]->{token}), $data[0]);
+  }
+  elsif ($what eq $RULES_UNUSED_VARIABLE) {
+    $adderr->($what, $LINT_WARN, sprintf("'%s' defined but not used", $data[0]->{name}), $data[0]);
+  }
+  elsif ($what eq $RULES_REDEFINING_SYMBOL) {
+    my $error = $adderr->($what, $LINT_WARN, sprintf("redefinition of '%s' as a different kind of symbol", $data[0]->{name}), $data[0]);
+    my $note = $adderr->($what, $LINT_NOTE, "previous definition is here", $data[1]);
+    $note->{linksto} = $error;
+  }
+  elsif ($what eq $RULES_UNREACHABLE_CODE) {
+    $adderr->($what, $LINT_WARN, sprintf("code will never be executed"), $data[0]);
+  }
+  else {
+    die "unknown lint message";
+  }
 
   return $self;
 }
@@ -244,49 +323,13 @@ sub lint
     $self->lint_unreachable_code($scope);
   }
 
-  for my $error (sort {
-      $a->{data}[0]->{lineno} <=> $b->{data}[0]->{lineno};
-    } @{$self->{linterrors}}) {
-    my ($what, @data) = ($error->{what}, @{$error->{data}});
+  my @errors;
 
-    if ($what eq $RULES_UNDEFINED_REFERENCE) {
-      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("'%s' undeclared", $data[0]->{token}));
-    }
-    elsif ($what eq $RULES_GLOBAL) {
-      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("global declaration '%s' is not allowed", $data[0]->{name}));
-    }
-    elsif ($what eq $RULES_QUALIFIED) {
-      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("data structure '%s' needs to be qualified", $data[0]->{name}));
-    }
-    elsif ($what eq $RULES_UPPERCASE_CONSTANT) {
-      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("constant '%s' needs to be all uppercase", $data[0]->{name}));
-    }
-    elsif ($what eq $RULES_SHADOW) {
-      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("declaration of '%s' shadows a global declaration", $data[0]->{name}));
-      $self->print_unix($what, $LINT_NOTE, $data[1], "shadowed declaration is here");
-    }
-    elsif ($what eq $RULES_SUBROUTINE) {
-      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("subroutine '%s' is not allowed", $data[0]->{name}));
-    }
-    elsif ($what eq $RULES_UPPERCASE_INDICATOR) {
-      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("indicator '%s' needs to be all uppercase", $data[0]->{token}));
-    }
-    elsif ($what eq $RULES_INDICATOR) {
-      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("indicator '%s' is not allowed", $data[0]->{token}));
-    }
-    elsif ($what eq $RULES_UNUSED_VARIABLE) {
-      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("'%s' defined but not used", $data[0]->{name}));
-    }
-    elsif ($what eq $RULES_REDEFINING_SYMBOL) {
-      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("redefinition of '%s' as a different kind of symbol", $data[0]->{name}));
-      $self->print_unix($what, $LINT_NOTE, $data[1], "previous definition is here");
-    }
-    elsif ($what eq $RULES_UNREACHABLE_CODE) {
-      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("code will never be executed"));
-    }
-    else {
-      die "unknown lint message";
-    }
+  if ($self->{format} eq $FORMAT_UNIX) {
+    $self->print_unix(sort main::sorterrors @{$self->{linterrors}});
+  }
+  elsif ($self->{format} eq $FORMAT_JSON) {
+    $self->print_json(sort main::sorterrors @{$self->{linterrors}});
   }
 
   return $self;
@@ -706,11 +749,51 @@ sub new
   my $class = shift;
   my $self = {
     rules => $default_rules,
-    linterrors => []
+    linterrors => [],
+    format => "unix"
   };
   bless($self, $class);
 
   return $self;
+}
+
+sub setformat
+{
+  my $self = shift;
+  my ($format) = @_;
+
+  if ($format eq $FORMAT_UNIX) {
+    $self->{format} = $format;
+  }
+  elsif ($format eq $FORMAT_JSON) {
+    $self->{format} = $format;
+  }
+  else {
+    die "Unknown format '$format'";
+  }
+}
+
+sub setoption
+{
+  my $self = shift;
+  my ($option) = @_;
+
+  my $set = 1;
+  if ($option =~ m{ ^ no (.*) }xsmig) {
+    $option = $1;
+    $set = 0;
+  }
+
+  if ($option eq "all") {
+    for (keys %{$self->{rules}}) {
+      $self->{rules}->{$_} = $set;
+    }
+  } else {
+    unless (grep { $_ eq $option } keys %{$self->{rules}}) {
+      die "Unknown warning '$option'";
+    }
+    $self->{rules}->{$option} = $set;
+  }
 }
 
 1;

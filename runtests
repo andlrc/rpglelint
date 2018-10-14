@@ -16,11 +16,11 @@ do
 	if test -f "$expfile"
 	then
 		# run test
-		printf '$ %s\n' "$rpglelint $file 2>&1 | diff $expfile -"
-		"$rpglelint" "$file" 2>&1 | diff "$expfile" - || exit 2
+		printf '$ %s\n' "$rpglelint $file | diff $expfile -"
+		"$rpglelint" "$file" | diff "$expfile" - || exit 2
 	else
 		# create expected output
-		printf '$ %s\n' "$rpglelint $file 2> $expfile"
-		"$rpglelint" "$file" 2> "$expfile"
+		printf '$ %s\n' "$rpglelint $file $expfile"
+		"$rpglelint" "$file" "$expfile"
 	fi
 done

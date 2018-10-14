@@ -19,6 +19,10 @@ sub parseopts
   my ($opts) = @_;
 
   GetOptionsFromArray($opts,
+    'f|format=s' => sub {
+      my ($name, $value) = @_;
+      $linter->setformat($value);
+    },
     '--dump' => \$dump,
     'I|include=s' => sub {
       my ($name, $value) = @_;
@@ -26,21 +30,7 @@ sub parseopts
     },
     'W=s' => sub {
       my ($name, $option) = @_;
-      my $set = 1;
-      if ($option =~ m{ ^ no (.*) }xsmig) {
-        $option = $1;
-        $set = 0;
-      }
-      if ($option eq "all") {
-        for (keys %{$linter->{rules}}) {
-          $linter->{rules}->{$_} = $set;
-        }
-      } else {
-        unless (grep { $_ eq $option } keys %{$linter->{rules}}) {
-          die "Unknown warning '$option'";
-        }
-        $linter->{rules}->{$option} = $set;
-      }
+      $linter->setoption($option);
     },
     'h|help' => sub {
       print("Usage rpglelint [OPTIONS]... [FILES]...\n");
@@ -51,6 +41,7 @@ sub parseopts
       printf("  -Wall   enables all warnings\n");
       printf("\n");
       printf("  -I, --include   a file glob that will be used to resolve include directories\n");
+      printf("  -f, --format    either 'unix' or 'json'\n");
       printf("  -h, --help      show this help and exit\n");
       exit 0;
     }

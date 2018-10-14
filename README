@@ -16,4 +16,5 @@ The following warnings are supported:
   -Wall   enables all warnings
 
   -I, --include   a file glob that will be used to resolve include directories
+  -f, --format    either 'unix' or 'json'
   -h, --help      show this help and exit
