@@ -50,7 +50,7 @@ sub parseopts
       printf("\n");
       printf("  -Wall   enables all warnings\n");
       printf("\n");
-      printf("  -I, --include   a comma seperated list of directories to search for included files\n");
+      printf("  -I, --include   a file glob that will be used to resolve include directories\n");
       printf("  -h, --help      show this help and exit\n");
       exit 0;
     }

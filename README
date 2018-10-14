@@ -14,5 +14,5 @@ The following warnings are supported:
 
   -Wall   enables all warnings
 
-  -I, --include   a comma seperated list of directories to search for included files
+  -I, --include   a file glob that will be used to resolve include directories
   -h, --help      show this help and exit
