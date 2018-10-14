@@ -22,7 +22,7 @@ sub parseopts
     '--dump' => \$dump,
     'I|include=s' => sub {
       my ($name, $value) = @_;
-      push(@{$parser->{include}}, split(/[,:]/, $value));
+      push(@{$parser->{include}}, glob($value));
     },
     'W=s' => sub {
       my ($name, $option) = @_;
