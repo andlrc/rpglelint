@@ -4,6 +4,7 @@ The following warnings are supported:
   -Wglobal,
   -Windicator,
   -Wqualified,
+  -Wredefining-symbol,
   -Wshadow,
   -Wsubroutine,
   -Wundefined-reference,

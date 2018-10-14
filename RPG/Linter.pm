@@ -30,6 +30,7 @@ my $RULES_SUBROUTINE = "subroutine";
 my $RULES_UPPERCASE_INDICATOR = "uppercase-indicator";
 my $RULES_INDICATOR = "indicator";
 my $RULES_UNUSED_VARIABLE = "unused-variable";
+my $RULES_REDEFINING_SYMBOL = "redefining-symbol";
 
 my $default_rules = {
   global => 0,
@@ -40,7 +41,8 @@ my $default_rules = {
   subroutine => 0,
   'uppercase-indicator' => 0,
   indicator => 0,
-  'unused-variable' => 0
+  'unused-variable' => 0,
+  'redefining-symbol' => 0
 };
 
 # utility function to loop over each scope,
@@ -231,6 +233,10 @@ sub lint
     $self->lint_unused_variable($scope);
   }
 
+  if ($self->{rules}->{$RULES_REDEFINING_SYMBOL}) {
+    $self->lint_redefining_symbol($scope);
+  }
+
   for my $error (sort {
       $a->{data}[0]->{lineno} <=> $b->{data}[0]->{lineno};
     } @{$self->{linterrors}}) {
@@ -263,6 +269,10 @@ sub lint
     }
     elsif ($what eq $RULES_UNUSED_VARIABLE) {
       $self->print_unix($what, $LINT_WARN, $data[0], sprintf("'%s' defined but not used", $data[0]->{name}));
+    }
+    elsif ($what eq $RULES_REDEFINING_SYMBOL) {
+      $self->print_unix($what, $LINT_WARN, $data[0], sprintf("redefinition of '%s' as a different kind of symbol", $data[0]->{name}));
+      $self->print_unix($what, $LINT_NOTE, $data[1], "previous definition is here");
     } else {
       die "unknown lint message";
     }
@@ -516,6 +526,23 @@ sub lint_unused_variable
 
       $self->error($RULES_UNUSED_VARIABLE, $decl);
     }
+  });
+
+  return $self;
+}
+
+sub lint_redefining_symbol
+{
+  my $self = shift;
+  my ($scope) = @_;
+
+
+  main::loopscopes($scope, sub {
+    my @scopes = @_;
+    main::declhash({}, [$scopes[0]], sub {
+      my ($decl, $prevdecl) = @_;
+      $self->error($RULES_REDEFINING_SYMBOL, $decl, $prevdecl);
+    });
   });
 
   return $self;
