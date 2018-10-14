@@ -74,13 +74,10 @@ sub declhash
     $callback->($_, $decl) if defined $decl && defined $callback;
 
     if ($_->{what} eq $DCL_DS) {
-      my $qualified = 0;
-      if ($_->{qualified}) {
-        $qualified = 1;
-      }
-      elsif (defined $_->{likeds}) {
+      my $qualified = $_->{qualified};
+      if (!$qualified && defined $_->{likeds}) {
         my $dschain = findlikeds($_->{likeds}, @{$scopes});
-          $qualified = 1 if grep({ $_->{qualified} } @{$dschain});
+        $qualified = 1 if grep({ $_->{qualified} } @{$dschain});
       }
 
       if ($qualified) {
@@ -317,14 +314,13 @@ sub lint_qualified
 
     for (@{$scope->{declarations}}) {
       if ($_->{what} eq $DCL_DS) {
-        if (defined $_->{likeds}) {
+        my $qualified = $_->{qualified};
+        if (!$qualified && defined $_->{likeds}) {
           my $dschain = main::findlikeds($_->{likeds}, @scopes);
-          if (!grep({ $_->{qualified} } @{$dschain})) {
-            $self->error($RULES_QUALIFIED, $_);
-          }
-        } elsif (!$_->{qualified}) {
-          $self->error($RULES_QUALIFIED, $_);
+          $qualified = 1 if grep({ $_->{qualified} } @{$dschain});
         }
+
+        $self->error($RULES_QUALIFIED, $_) unless $qualified;
       }
     }
   });
