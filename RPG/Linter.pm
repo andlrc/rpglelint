@@ -139,7 +139,7 @@ sub print_unix
            $line->{file}, $line->{lineno}, $line->{column}, $msg, $what);
     $self->print_unix_code($type, $line);
   } elsif ($type eq $LINT_NOTE) {
-    printf(STDERR "%s:%d:%d: ${C_WARN}note:$C_RESET %s\n",
+    printf(STDERR "%s:%d:%d: ${C_NOTE}note:$C_RESET %s\n",
            $line->{file}, $line->{lineno}, $line->{column}, $msg);
     $self->print_unix_code($type, $line);
   }
