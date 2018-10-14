@@ -268,6 +268,7 @@ sub parse
     # dcl-proc
     if ($self->{stmt} =~ m{ ^ \s* dcl-proc \s+ ($R_IDENT) ( \s+ export )? }xsmi) {
       my $currentproc = {
+        what => $DCL_PROC,
         exported => defined $2,
         declarations => [],
         calculations => [],
