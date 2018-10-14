@@ -1,0 +1,3 @@
+t/14-undefref-dcl-pi.rpgle:19:3: warning: 'c' undeclared [-Wundefined-reference]
+   c = doIt(a : b);
+   ^

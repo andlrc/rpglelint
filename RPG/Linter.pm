@@ -68,33 +68,38 @@ sub declhash
   my ($decls, $scopes, $callback) = @_;
   my ($scope) = @{$scopes};
 
-  for (@{$scope->{declarations}}) {
-    my $decl = $decls->{$_->{name}};
+  my $adddecl = sub {
+    my ($name, $decl) = @_;
 
-    $callback->($_, $decl) if defined $decl && defined $callback;
+    my $prevdecl = $decls->{$name};
+    $callback->($decl, $prevdecl) if defined $prevdecl && defined $callback;
+    $decls->{$name} = $decl;
+  };
 
-    if ($_->{what} eq $DCL_DS) {
-      my $qualified = $_->{qualified};
-      if (!$qualified && defined $_->{likeds}) {
-        my $dschain = findlikeds($_->{likeds}, @{$scopes});
+  for my $decl (@{$scope->{declarations}}) {
+    if ($decl->{what} eq $DCL_DS) {
+      my $qualified = $decl->{qualified};
+      if (!$qualified && defined $decl->{likeds}) {
+        my $dschain = findlikeds($decl->{likeds}, @{$scopes});
         $qualified = 1 if grep({ $_->{qualified} } @{$dschain});
       }
 
       if ($qualified) {
-        $decls->{$_->{name}} = $_;
+        $adddecl->($decl->{name}, $decl);
       }
-      elsif (defined $_->{fields}) {
-        my $ds = $_;
-        for (@{$_->{fields}}) {
-          my $decl = $decls->{$_->{name}};
-          $callback->($_, $decl) if defined $decl && defined $callback;
-          $decls->{$_->{name}} = $_;
-        }
+      elsif (defined $decl->{fields}) {
+        $adddecl->($_->{name}, $_) for (@{$decl->{fields}});
       }
     }
     else {
-      $decls->{$_->{name}} = $_;
+      $adddecl->($decl->{name}, $decl);
     }
+  }
+
+  for my $procname (keys %{$scope->{procedures}}) {
+    my $proc = $scope->{procedures}->{$procname};
+    $adddecl->($procname, $proc);
+    $adddecl->($_->{name}, $_) for (@{$proc->{parameters}});
   }
 
   return 1;

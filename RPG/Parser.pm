@@ -18,6 +18,7 @@ my $CALC_BIF = 'bif';
 my $CALC_IDENT = 'ident';
 my $CALC_SUBF = 'subf';
 my $CALC_NUM = 'num';
+my $CALC_OPCODE = 'opcode';
 my $CALC_IND = 'ind';
 my $CALC_OP = 'op';
 
@@ -33,7 +34,17 @@ my $R_NUM = '\d+';
 my $R_SUBF = '\. '. $R_IDENT;
 my $R_OP = '(?:<> | >= | <= | > | < | = | \+= | -= | \+ | - | or | and | not)';
 my $R_BIF = '% ' . $R_IDENT;
-my $R_IND = '\* (?: ON | OFF | NULL | BLANK | BLANKS | IN[0-0][0-9] | INH[1-9] | INL[1-9] | INLR | INU[1-8] | INRT )';
+my $R_OPCODE = '(?: \b select \b | \b when \b | \b other \b | \b endsl \b'
+             . '  | \b if \b | \b elseif \b | \b else \b | \b endif \b'
+             . '  | \b or \b | \b and \b | \b not \b'
+             . '  | \b do[uw] \b | \b iter \b | \b leave \b | \b enddo \b'
+             . '  | \b for | \b endfor \b'
+             . '  | \b begsr \b | \b exsr \b | \b leavesr \b | \b endsr \b'
+             . '  | \b monitor \b | \b on-error \b | \b endmon \b'
+             . '  | \b return \b)';
+
+my $R_IND = '\* (?: ON | OFF | NULL | BLANK | BLANKS | IN[0-0][0-9] | INH[1-9]'
+          . '     | INL[1-9] | INLR | INU[1-8] | INRT )';
 
 sub strjoin
 {
@@ -365,7 +376,9 @@ sub parse
     }
 
     my $startlineno = $. - (() = $self->{stmt} =~ m{ \n }xsmig) + 1;
-    while (my $kw = $self->{stmt} =~ m{ ( $R_STR | $R_BIF | $R_SUBF | $R_IDENT | $R_NUM | $R_IND | $R_OP ) }xsmigp) {
+    while (my $kw = $self->{stmt} =~ m{ ( $R_STR | $R_BIF | $R_SUBF | $R_OPCODE
+                                        | $R_IDENT | $R_NUM | $R_IND | $R_OP ) }xsmigp) {
+
       my @prelines = split(/\n/, ${^PREMATCH});
       my $calc = {
         file => $self->{file},
@@ -383,9 +396,8 @@ sub parse
       $calc->{line} .= $calc->{token};
       $calc->{line} .= ${^POSTMATCH} =~ s{ \n .* }{}xsmir . $/;
 
-      if ($calc->{token} =~ m{ $R_STR }xsmi) {
+      if ($calc->{token} =~ m{ ^ $R_STR $ }xsmi) {
         $calc->{what} = $CALC_STR;
- 
         # join continuously character literals
         $calc->{token} =~ s{ ' (.*?) ' }{"'" . main::strjoin($1) . "'"}xsmieg;
       }
@@ -397,6 +409,9 @@ sub parse
         $calc->{column}++;
         $calc->{token} = substr($calc->{token}, 1);
         $calc->{ds} = $self->{scope}->{calculations}[-1]->{token};
+      }
+      elsif ($calc->{token} =~ m{ ^ $R_OPCODE $ }xsmi) {
+        $calc->{what} = $CALC_OPCODE;
       }
       elsif ($calc->{token} =~ m{ ^ $R_IND $ }xsmi) {
         $calc->{what} = $CALC_IND;

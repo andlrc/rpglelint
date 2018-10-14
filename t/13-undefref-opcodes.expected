@@ -1,0 +1,6 @@
+t/13-undefref-opcodes.rpgle:4:3: warning: 'a' undeclared [-Wundefined-reference]
+   a = 1;
+   ^
+t/13-undefref-opcodes.rpgle:6:3: warning: 'b' undeclared [-Wundefined-reference]
+   b = 2;
+   ^
