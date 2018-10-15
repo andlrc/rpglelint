@@ -253,10 +253,10 @@ sub parse
     next if $self->{stmt} =~ m{ ^ \s* / }xsmi;
 
     # join continuously lines
-    unless ($self->{stmt} =~ m{ ; $ }xsmi) {
+    unless ($self->{stmt} =~ m{ ; \s* $ }xsmi) {
       while (my $line = <$fh>) {
         $self->{stmt} .= $line;
-        last if $line =~ m{ ; $ }xsmi;
+        last if $line =~ m{ ; \s* $ }xsmi;
       }
     }
 
