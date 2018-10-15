@@ -48,6 +48,10 @@ sub parseopts
   ) or exit 2;
 }
 
+if (defined $ENV{RPGLELINT_INCLUDE}) {
+  push(@{$parser->{include}}, glob($_)) for split(/:/, $ENV{RPGLELINT_INCLUDE});
+}
+
 parseopts(\@ARGV);
 $parser->{parseopts} = \&parseopts;
 
