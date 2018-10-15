@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use v5.16;
+use RPG::Statement;
 
 use Exporter;
 
@@ -80,25 +81,6 @@ sub findfile
   return $file;
 }
 
-sub getlinenocol
-{
-  my ($stmt, $ref) = @_;
-  my ($line, $lineno, $col) = (undef, $., 0);
-
-  for (split(/(?<=\n)/, $stmt)) {
-    if ($col == 0) {
-      $line = $_;
-      if (m{ (.*?) \b \Q$ref\E \b }xsmi) {
-        $col = length($1) + 1;
-      }
-    } else {
-      $lineno--;
-    }
-  }
-
-  return ($line, $lineno, $col);
-}
-
 package RPG::Parser;
 
 sub new
@@ -137,31 +119,32 @@ sub popscope
 sub subf
 {
   my $self = shift;
-  my $fh = $self->{fh};
 
   my @params;
 
-  while (<$fh>) {
+  while (my $stmt = $self->getstmt()) {
+ 
     # skip blank lines
-    next if m{ ^ \s* $ }xsmi;
+    next if $stmt->{code} =~ m{ ^ \s* $ }xsi;
 
-    # skip comments
-    next if m{ ^ \s* // }xsmi;
+    # skip other compiler directive
+    next if $stmt->{code} =~ m{ ^ \s* / }xsmi;
 
-    last unless m{ (?: dcl-subf \s+ )? ($R_IDENT) \s+ ($R_TYPE) (?: \s+ ($R_KWS) )? }xsmi;
+    last unless $stmt->{code} =~ m{ (?: dcl-subf \s+ )? ($R_IDENT) \s+ ($R_TYPE) (?: \s+ ($R_KWS) )? }xsmi;
 
     my @kws = split(/\s+/, defined $3 ? $3 : '');
 
-    my ($line, $lineno, $column) = main::getlinenocol($_, $1);
+    $stmt->calckw($1);
+
     push(@params, {
         what => $DCL_SUBF,
-        file => $self->{file},
+        file => $stmt->{file},
+        stmt => $stmt,
         name => $1,
         type => $2,
-        stmt => $_,
-        line => $line,
-        lineno => $lineno,
-        column => $column,
+        line => $stmt->{line},
+        lineno => $stmt->{lineno},
+        column => $stmt->{column},
         kws => \@kws
     });
   }
@@ -173,10 +156,16 @@ sub adddecl
 {
   my $self = shift;
   my ($what, $decl) = @_;
-  ($decl->{line}, $decl->{lineno}, $decl->{column}) = main::getlinenocol($self->{stmt}, $decl->{name});
+  my $stmt = $self->{stmt};
+
+  $stmt->calckw($decl->{name});
+
   $decl->{what} = $what;
-  $decl->{stmt} = $self->{stmt};
-  $decl->{file} = $self->{file};
+  $decl->{stmt} = $stmt;
+  $decl->{file} = $stmt->{file};
+  $decl->{line} = $stmt->{line};
+  $decl->{lineno} = $stmt->{lineno};
+  $decl->{column} = $stmt->{column};
 
   push(@{$self->{scope}->{declarations}}, $decl);
 
@@ -197,6 +186,16 @@ sub warn
   }
 }
 
+sub getstmt
+{
+  my $self = shift;
+  my $fh = $self->{fh};
+
+  my $stmt = RPG::Statement->new($self);
+  $self->{stmt} = $stmt;
+  return $stmt;
+}
+
 sub parse
 {
   my $self = shift;
@@ -211,21 +210,18 @@ sub parse
   };
   $self->setscope($self->{rootscope});
 
-  my $fh;
   if ($self->{file} eq "-") {
-    $fh = *STDIN;
+    $self->{fh} = *STDIN;
   } else {
-    if (!open($fh, "<", $self->{file})) {
+    if (!open($self->{fh}, "<", $self->{file})) {
       $self->warn("$self->{file} $!");
       return undef;
     }
   }
-  $self->{fh} = $fh;
-  while ($self->{stmt} = <$fh>) {
-    # skip blank lines
-    next if $self->{stmt} =~ m{ ^ \s* $ }xsmi;
 
-    if ($self->{stmt} =~ m{ ^ \s* / \s* (?: copy | include ) \s+ (.*?) \s* $ }xsmi) {
+  while (my $stmt = $self->getstmt()) {
+
+    if ($stmt->{code} =~ m{ ^ \s* / \s* (?: copy | include ) \s+ (.*?) \s* $ }xsmi) {
       my $parser = RPG::Parser->new;
       $parser->{include} = $parser->{include};
 
@@ -238,75 +234,62 @@ sub parse
     }
 
     # skip blank lines
-    next if $self->{stmt} =~ m{ ^ \s* $ }xsmi;
+    next if $stmt->{code} =~ m{ ^ \s* $ }xsi;
 
-    # comments, try to extract liter options, i.e:
-    # // rpglelint: -Wundefined-reference -Wnoshadow
-    if ($self->{stmt} =~ m{ ^ \s* // }xsmi) {
-      if ($self->{stmt} =~ m { rpglelint: (.*) }xsmi) {
-        my @opts = grep { m/./ } split(/\s+/, $1);
-        $self->{parseopts}->(\@opts);
-      }
-    }
-
-    # other compiler directive
-    next if $self->{stmt} =~ m{ ^ \s* / }xsmi;
-
-    # join continuously lines
-    unless ($self->{stmt} =~ m{ ; \s* $ }xsmi) {
-      while (my $line = <$fh>) {
-        $self->{stmt} .= $line;
-        last if $line =~ m{ ; \s* $ }xsmi;
-      }
-    }
+    # skip other compiler directive
+    next if $stmt->{code} =~ m{ ^ \s* / }xsmi;
 
     # FIXME: ctl-opt
-    next if $self->{stmt} =~ m{ ctl-opt }xsmi;
+    next if $stmt->{code} =~ m{ ctl-opt }xsmi;
 
     # dcl-proc
-    if ($self->{stmt} =~ m{ ^ \s* dcl-proc \s+ ($R_IDENT) ( \s+ export )? }xsmi) {
+    if ($stmt->{code} =~ m{ ^ \s* dcl-proc \s+ ($R_IDENT) ( \s+ export )? }xsmi) {
+      $stmt->calckw($1);
       my $proc = {
-        file => $self->{file},
-        what => $DCL_PROC,
         name => $1,
+        file => $stmt->{file},
+        what => $DCL_PROC,
+        stmt => $stmt,
+        line => $stmt->{line},
+        lineno => $stmt->{lineno},
+        column => $stmt->{column},
         exported => defined $2,
         declarations => [],
         calculations => [],
         subroutines => {}
       };
-      ($proc->{line}, $proc->{lineno}, $proc->{column}) = main::getlinenocol($self->{stmt}, $proc->{name});
 
       $self->{scope}->{procedures}->{$1} = $proc;
       $self->setscope($proc);
       next;
     }
 
-    if ($self->{stmt} =~ m{ ^ \s* end-proc \s* ; }xsmi) {
+    if ($stmt->{code} =~ m{ ^ \s* end-proc \s* ; }xsmi) {
       $self->popscope();
       next;
     }
 
     # dcl-pr
-    if ($self->{stmt} =~ m{ ^ \s* dcl-pr \s+ ($R_IDENT) (?: \s+ ($R_TYPE) )? }xsmi) {
-      $self->adddecl($DCL_PR, {
+    if ($stmt->{code} =~ m{ ^ \s* dcl-pr \s+ ($R_IDENT) (?: \s+ ($R_TYPE) )? }xsmi) {
+      my $decl = $self->adddecl($DCL_PR, {
         name => $1,
-        returns => defined $2 ? $2 : '',
-        parameters => $self->subf()
+        returns => defined $2 ? $2 : ''
       });
-      $self->warn("expected 'end-pr'") unless m{ end-pr }xsmi;
+      $decl->{parameters} = $self->subf();
+      $self->warn("expected 'end-pr'") unless $self->{stmt}->{code} =~ m{ end-pr }xsmi;
       next;
     }
 
     # dcl-pi
-    if ($self->{stmt} =~ m{ ^ \s* dcl-pi \s+ ($R_IDENT | \*N) (?: \s+ ($R_TYPE) )? }xsmi) {
+    if ($stmt->{code} =~ m{ ^ \s* dcl-pi \s+ ($R_IDENT | \*N) (?: \s+ ($R_TYPE) )? }xsmi) {
       $self->{scope}->{returns} = $2 if defined $2;
       $self->{scope}->{parameters} = $self->subf();
-      $self->warn("expected 'end-pi'") unless m{ end-pi }xsmi;
+      $self->warn("expected 'end-pi'") unless $self->{stmt}->{code} =~ m{ end-pi }xsmi;
       next;
     }
 
     # dcl-s
-    if ($self->{stmt} =~ m{ ^ \s* dcl-s \s+ ($R_IDENT) \s+ ($R_TYPE) (?: \s+ ($R_KWS) )? }xsmi) {
+    if ($stmt->{code} =~ m{ ^ \s* dcl-s \s+ ($R_IDENT) \s+ ($R_TYPE) (?: \s+ ($R_KWS) )? }xsmi) {
       my @kws = split(/\s+/, defined $3 ? $3 : '');
       $self->adddecl($DCL_S, {
         name => $1,
@@ -318,7 +301,7 @@ sub parse
     }
 
     # dcl-c
-    if ($self->{stmt} =~ m{ ^ \s* dcl-c \s+ ($R_IDENT) (?: \s+ const \s* \( (.*?) \) | (.*?) ) ; }xsmi) {
+    if ($stmt->{code} =~ m{ ^ \s* dcl-c \s+ ($R_IDENT) (?: \s+ const \s* \( (.*?) \) | (.*?) ) ; }xsmi) {
       $self->adddecl($DCL_C, {
         name => $1,
         value => ($2 or $3)
@@ -328,7 +311,7 @@ sub parse
     }
 
     # dcl-ds
-    if ($self->{stmt} =~ m{ ^ \s* dcl-ds \s+ ($R_IDENT) (?: \s+ ($R_KWS) )? }xsmi) {
+    if ($stmt->{code} =~ m{ ^ \s* dcl-ds \s+ ($R_IDENT) (?: \s+ ($R_KWS) )? }xsmi) {
       my @kws = split(/\s+/, defined $2 ? $2 : '');
 
       my $decl = $self->adddecl($DCL_DS, {
@@ -351,44 +334,46 @@ sub parse
 
       unless (defined $decl->{likeds}) {
         $decl->{fields} = $self->subf();
-        $self->warn("expected 'end-ds'") unless m{ end-ds }xsmi;
+        $self->warn("expected 'end-ds'") unless $self->{stmt}->{code} =~ m{ end-ds }xsmi;
       }
 
       next;
     }
 
     # subroutines
-    if ($self->{stmt} =~ m{ ^ \s* begsr \s+ ($R_IDENT) }xsmi) {
+    if ($stmt->{code} =~ m{ ^ \s* begsr \s+ ($R_IDENT) }xsmi) {
+      $stmt->calckw($1);
       my $sub = {
         file => $self->{file},
         name => $1,
-        stmt => $self->{stmt},
+        stmt => $stmt,
+        line => $stmt->{line},
+        lineno => $stmt->{lineno},
+        column => $stmt->{column},
         calculations => [],
       };
-      ($sub->{line}, $sub->{lineno}, $sub->{column}) = main::getlinenocol($self->{stmt}, $sub->{name});
 
       $self->{scope}->{subroutines}->{$1} = $sub;
       $self->setscope($sub);
       next;
     }
 
-    if ($self->{stmt} =~ m{ ^ \s* endsr \s* ; }xsmi) {
+    if ($stmt->{code} =~ m{ ^ \s* endsr \s* ; }xsmi) {
       $self->popscope();
       next;
     }
 
-    my $startlineno = $. - (() = $self->{stmt} =~ m{ \n }xsmig) + 1;
-    while (my $kw = $self->{stmt} =~ m{ ( $R_STR | $R_BIF | $R_SUBF | $R_OPCODE
+    while (my $kw = $stmt->{code} =~ m{ ( $R_STR | $R_BIF | $R_SUBF | $R_OPCODE
                                         | $R_IDENT | $R_NUM | $R_IND | $R_OP ) }xsmigp) {
 
       my @prelines = split(/\n/, ${^PREMATCH});
       my $calc = {
         file => $self->{file},
-        lineno => $startlineno,
+        lineno => $stmt->{startlineno},
+        stmt => $stmt,
         column => 1,
         line => '',
-        token => $1,
-        stmt => $self->{stmt}
+        token => $1
       };
       if (@prelines) {
         $calc->{lineno} += @prelines - 1;
@@ -433,7 +418,7 @@ sub parse
   }
 
   if ($self->{file} ne "-") {
-    close($fh);
+    close($self->{fh});
   }
 
   return $self->{rootscope};
