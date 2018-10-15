@@ -1,0 +1,18 @@
+t/28-same-casing.rpgle:9:8: warning: 'myds' is not in the same casing as 'MyDS' [-Wsame-casing]
+ dcl-ds myds2 likeds(myds);
+        ^
+t/28-same-casing.rpgle:3:8: note: definition is here
+ dcl-ds MyDS;
+        ^
+t/28-same-casing.rpgle:12:1: warning: 'subf1' is not in the same casing as 'SUBF1' [-Wsame-casing]
+ subf1 = 1;
+ ^
+t/28-same-casing.rpgle:4:3: note: definition is here
+   SUBF1 int(10);
+   ^
+t/28-same-casing.rpgle:14:1: warning: 'Abc' is not in the same casing as 'abc' [-Wsame-casing]
+ Abc = 1;
+ ^
+t/28-same-casing.rpgle:7:7: note: definition is here
+ dcl-s abc int(10);
+       ^

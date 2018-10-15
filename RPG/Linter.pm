@@ -36,6 +36,7 @@ my $RULES_INDICATOR = "indicator";
 my $RULES_UNUSED_VARIABLE = "unused-variable";
 my $RULES_REDEFINING_SYMBOL = "redefining-symbol";
 my $RULES_UNREACHABLE_CODE = "unreachable-code";
+my $RULES_SAME_CASING = "same-casing";
 
 my $default_rules = {
   global => 0,
@@ -48,7 +49,8 @@ my $default_rules = {
   indicator => 0,
   'unused-variable' => 0,
   'redefining-symbol' => 0,
-  'unreachable-code' => 0
+  'unreachable-code' => 0,
+  'same-casing' => 0
 };
 
 sub sorterrors($$)
@@ -82,15 +84,15 @@ sub loopscopes
 # calls $callback is a previous declaration is already defined
 sub declhash
 {
-  my ($decls, $scopes, $callback) = @_;
+  my ($decls, $scopes, $callback, $adddsdecl) = @_;
   my ($scope) = @{$scopes};
 
   my $adddecl = sub {
     my ($name, $decl) = @_;
 
-    my $prevdecl = $decls->{$name};
+    my $prevdecl = $decls->{fc $name};
     $callback->($decl, $prevdecl) if defined $prevdecl && defined $callback;
-    $decls->{$name} = $decl;
+    $decls->{fc $name} = $decl;
   };
 
   for my $decl (@{$scope->{declarations}}) {
@@ -104,8 +106,11 @@ sub declhash
       if ($qualified) {
         $adddecl->($decl->{name}, $decl);
       }
-      elsif (defined $decl->{fields}) {
-        $adddecl->($_->{name}, $_) for (@{$decl->{fields}});
+      else {
+        $adddecl->($decl->{name}, $decl) if ($adddsdecl);
+        if (defined $decl->{fields}) {
+          $adddecl->($_->{name}, $_) for (@{$decl->{fields}});
+        }
       }
     }
     else {
@@ -263,7 +268,12 @@ sub error
     $note->{linksto} = $error;
   }
   elsif ($what eq $RULES_UNREACHABLE_CODE) {
-    $adderr->($what, $LINT_WARN, sprintf("code will never be executed"), $data[0]);
+    $adderr->($what, $LINT_WARN, "code will never be executed", $data[0]);
+  }
+  elsif ($what eq $RULES_SAME_CASING) {
+    my $error = $adderr->($what, $LINT_WARN, sprintf("'%s' is not in the same casing as '%s'", $data[0]->{token} || $data[0]->{likeds}, $data[1]->{name}), $data[0]);
+    my $note = $adderr->($what, $LINT_NOTE, "definition is here", $data[1]);
+    $note->{linksto} = $error;
   }
   else {
     die "unknown lint message";
@@ -321,6 +331,10 @@ sub lint
 
   if ($self->{rules}->{$RULES_UNREACHABLE_CODE}) {
     $self->lint_unreachable_code($scope);
+  }
+
+  if ($self->{rules}->{$RULES_SAME_CASING}) {
+    $self->lint_same_casing($scope);
   }
 
   my @errors;
@@ -453,13 +467,13 @@ sub lint_undefined_reference
         lineno => $_->{lineno},
         column => index($_->{line}, $_->{likeds}) + 1,
         token => $_->{likeds}
-      }) unless $decls->{$_->{likeds}};
+      }) unless $decls->{fc $_->{likeds}};
     }
 
     for (@{$scope->{calculations}}) {
       if ($_->{what} eq $CALC_IDENT) {
         # check if identifier is defined
-        $self->error($RULES_UNDEFINED_REFERENCE, $_) unless defined $decls->{$_->{token}};
+        $self->error($RULES_UNDEFINED_REFERENCE, $_) unless defined $decls->{fc $_->{token}};
       }
       elsif ($_->{what} eq $CALC_SUBF) {
         # check to see if the subfield is part of the data structure
@@ -560,17 +574,17 @@ sub lint_unused_variable
     for (@{$scope->{declarations}}) {
       next unless $_->{what} eq $DCL_DS;
       next unless defined $_->{likeds};
-      delete $decls->{$_->{name}};
+      delete $decls->{fc $_->{name}};
     }
 
     for (@{$scope->{calculations}}) {
       if ($_->{what} eq $CALC_IDENT) {
-        delete $decls->{$_->{token}};
+        delete $decls->{fc $_->{token}};
       }
     }
 
     for (keys %{$decls}) {
-      my $decl = $decls->{$_};
+      my $decl = $decls->{fc $_};
 
       next if $decl->{what} ne $DCL_SUBF and $decl->{what} ne $DCL_S;
 
@@ -737,6 +751,51 @@ sub lint_unreachable_code
       if (defined $unreached) {
         $self->error($RULES_UNREACHABLE_CODE, $unreached);
         last;
+      }
+    }
+  });
+
+  return $self;
+}
+
+sub lint_same_casing
+{
+  my $self = shift;
+  my ($scope) = @_;
+
+  my $gdecls = undef;
+  my $decls = undef;
+
+  main::loopscopes($scope, sub {
+    my @scopes = @_;
+    my ($scope) = @scopes;
+
+    if (defined $gdecls) {
+      $decls = { %{$gdecls} };
+    } else {
+      $gdecls = {};
+      $decls = $gdecls;
+    }
+
+    main::declhash($decls, \@scopes, undef, 1);
+
+
+    # check if a 'likeds' is found
+    for (@{$scope->{declarations}}) {
+      next unless $_->{what} eq $DCL_DS;
+      next unless defined $_->{likeds};
+      my $decl = $decls->{fc $_->{likeds}};
+      if (defined $decl && $decl->{name} ne $_->{likeds}) {
+        $self->error($RULES_SAME_CASING, $_, $decl);
+      }
+    }
+
+    for (@{$scope->{calculations}}) {
+      if ($_->{what} eq $CALC_IDENT) {
+        my $decl = $decls->{fc $_->{token}};
+        if (defined $decl && $decl->{name} ne $_->{token}) {
+          $self->error($RULES_SAME_CASING, $_, $decl);
+        }
       }
     }
   });
