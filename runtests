@@ -20,7 +20,7 @@ do
 		"$rpglelint" "$file" | diff "$expfile" - || exit 2
 	else
 		# create expected output
-		printf '$ %s\n' "$rpglelint $file $expfile"
-		"$rpglelint" "$file" "$expfile"
+		printf '$ %s\n' "$rpglelint $file > $expfile"
+		"$rpglelint" "$file" > "$expfile"
 	fi
 done
