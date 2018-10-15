@@ -538,8 +538,8 @@ sub lint_indicator
 
     for (@{$scope->{calculations}}) {
       if ($_->{what} eq $CALC_IND) {
-        # Allow *ON, *OFF, *NULL, *BLANK, and *BLANKS
-        next if $_->{token} =~ m{ \* (?: ON | OFF | NULL | BLANK | BLANKS ) }xsmi;
+        # Allow *ON, *OFF, *NULL, *BLANK, *BLANKS, and *OMIT
+        next if $_->{token} =~ m{ \* (?: ON | OFF | NULL | BLANK | BLANKS | OMIT ) }xsmi;
 
         $self->error($RULES_INDICATOR, $_);
       }

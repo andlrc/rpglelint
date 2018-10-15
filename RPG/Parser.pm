@@ -42,8 +42,8 @@ my $R_OPCODE = '(?: \b select \b | \b when \b | \b other \b | \b endsl \b'
              . '  | \b monitor \b | \b on-error \b | \b endmon \b'
              . '  | \b return \b)';
 
-my $R_IND = '\* (?: ON | OFF | NULL | BLANK | BLANKS | IN[0-0][0-9] | INH[1-9]'
-          . '     | INL[1-9] | INLR | INU[1-8] | INRT )';
+my $R_IND = '\* (?: ON | OFF | NULL | BLANK | BLANKS | OMIT'
+          . '     | IN[0-0][0-9] | INH[1-9]  | INL[1-9] | INLR | INU[1-8] | INRT )';
 
 sub strjoin
 {
