@@ -1,0 +1,93 @@
+.TH "RPGLELINT" "1" "2018 Oct 15"
+.SH NAME
+rpglelint - Lint ILE/RPG Programs
+.SH SYNOPSIS
+.B rpglelint
+[\fIOPTIONS\fR]... \fIFILE\fR...
+.SH DESCRIPTION
+.PP
+.B rpglelint
+will lint ILE/RPG programs
+.PP
+Mandatory arguments to long options are mandatory for short options too.
+.TP
+\fB\-Wall\fR
+will enable all warnings, see
+.B WARNINGS
+.TP
+\fB\-I\fR, \fB--include\fR=\fIglob\fR
+a file glob with directories that will be searched for included files, see
+.B INCLUDE
+.TP
+\fB\-f\fR, \fB--format\fR=\fIformat\fR
+output format, either
+.BR unix ,
+or
+.B json
+.TP
+\fB\-h\fR, \fB--help\fR
+show help and exit
+.SH WARNINGS
+.TP
+\fB\-Wglobal\fR
+warn about global declarations
+.TP
+\fB\-Windicator\fR
+warn about usage of indicators such as
+.B *INLR
+and
+.B *IN01
+.TP
+\fB\-Wqualified\fR
+warn when data structures are not qualified
+.TP
+\fB\-Wredefining-symbol\fR
+warn when a symbol is redifined
+.TP
+\fB\-Wsame-casing\fR
+warn when a declaration is referenced with another casing as it is declared
+.TP
+\fB\-Wshadow\fR
+warn when a global declaration is shadowed by a local declaration
+.TP
+\fB\-Wsubroutine\fR
+warn when subroutines are used
+.TP
+\fB\-Wundefined-reference\fR
+warn when a symbol is referred but not declared
+.TP
+\fB\-Wunreachable-code\fR
+warn when code will never be reached
+.TP
+\fB\-Wunused-variable\fR
+warn when a declaration is never referred
+.TP
+\fB\-Wuppercase-constant\fR
+warn when a constant
+.B dcl-c
+is not all uppercase
+.TP
+\fB\-Wuppercase-indicator\fR
+warn when an indicator (including
+.BR *ON,
+.BR *OFF,
+.BR *OMIT,
+.BR *BLANK,
+and
+.BR *BLANKS )
+is not all uppercase
+.LP
+The following environment variables are read and used by
+.I rpglelint
+as described.
+.TP
+.B RPGLELINT_INCLUDE
+a file glob with directories that will be searched for included files, see
+.B INCLUDE
+.SH SEE ALSO
+.BR rpglectags (1)
+.SH AUTHOR
+Andreas Louv <andreas@louv.dk>.
+.SH LICENSE
+This program is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
