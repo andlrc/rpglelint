@@ -1,20 +1,84 @@
-Usage rpglelint [OPTIONS]... [FILES]...
+RPGLELINT(1)                General Commands Manual               RPGLELINT(1)
 
-The following warnings are supported:
-  -Wglobal,
-  -Windicator,
-  -Wqualified,
-  -Wredefining-symbol,
-  -Wshadow,
-  -Wsubroutine,
-  -Wundefined-reference,
-  -Wunreachable-code,
-  -Wunused-variable,
-  -Wuppercase-constant,
-  -Wuppercase-indicator,
+NAME
+       rpglelint - Lint ILE/RPG Programs
 
-  -Wall   enables all warnings
+SYNOPSIS
+       rpglelint [OPTIONS]... FILE...
 
-  -I, --include   a file glob that will be used to resolve include directories
-  -f, --format    either 'unix' or 'json'
-  -h, --help      show this help and exit
+DESCRIPTION
+       rpglelint will lint ILE/RPG programs
+
+       Mandatory  arguments  to  long  options are mandatory for short options
+       too.
+
+       -Wall  will enable all warnings, see WARNINGS
+
+       -I, --include=glob
+              a file glob with directories that will be searched for  included
+              files, see INCLUDE
+
+       -f, --format=format
+              output format, either unix, or json
+
+       -h, --help
+              show help and exit
+
+WARNINGS
+       -Wglobal
+              warn about global declarations
+
+       -Windicator
+              warn about usage of indicators such as *INLR and *IN01
+
+       -Wqualified
+              warn when data structures are not qualified
+
+       -Wredefining-symbol
+              warn when a symbol is redifined
+
+       -Wsame-casing
+              warn  when a declaration is referenced with another casing as it
+              is declared
+
+       -Wshadow
+              warn when a global declaration is shadowed by a  local  declara‐
+              tion
+
+       -Wsubroutine
+              warn when subroutines are used
+
+       -Wundefined-reference
+              warn when a symbol is referred but not declared
+
+       -Wunreachable-code
+              warn when code will never be reached
+
+       -Wunused-variable
+              warn when a declaration is never referred
+
+       -Wuppercase-constant
+              warn when a constant dcl-c is not all uppercase
+
+       -Wuppercase-indicator
+              warn  when an indicator (including *ON, *OFF, *OMIT, *BLANK, and
+              *BLANKS) is not all uppercase
+
+       The following environment variables are read and used by  rpglelint  as
+       described.
+
+       RPGLELINT_INCLUDE
+              a  file glob with directories that will be searched for included
+              files, see INCLUDE
+
+SEE ALSO
+       rpglectags(1)
+
+AUTHOR
+       Andreas Louv <andreas@louv.dk>.
+
+LICENSE
+       This program is free software; you can redistribute it and/or modify it
+       under the same terms as Perl itself.
+
+                                  2018 Oct 15                     RPGLELINT(1)
