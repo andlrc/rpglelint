@@ -1,0 +1,3 @@
+t/30-unused-global.rpgle:3:7: warning: 'global' defined but not used [-Wunused-variable]
+ dcl-s global int(10);
+       ^

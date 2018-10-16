@@ -574,7 +574,7 @@ sub lint_unused_variable
     my ($scope) = @scopes;
 
     if (defined $gdecls) {
-      $decls = { %{$gdecls} };
+      $decls = {};
     } else {
       $gdecls = {};
       $decls = $gdecls;
@@ -586,27 +586,52 @@ sub lint_unused_variable
     for (@{$scope->{declarations}}) {
       next unless $_->{what} eq $DCL_DS;
       next unless defined $_->{likeds};
-      delete $decls->{fc $_->{name}};
+      if (defined $decls->{fc $_->{name}}) {
+        delete $decls->{fc $_->{name}};
+      }
+      elsif (defined $gdecls->{fc $_->{name}}) {
+        delete $gdecls->{fc $_->{name}};
+      }
     }
 
     for (@{$scope->{calculations}}) {
       if ($_->{what} eq $CALC_IDENT) {
-        delete $decls->{fc $_->{token}};
+        if (defined $decls->{fc $_->{token}}) {
+          delete $decls->{fc $_->{token}};
+        }
+        elsif (defined $gdecls->{fc $_->{token}}) {
+          delete $gdecls->{fc $_->{token}};
+        }
       }
     }
 
-    for (keys %{$decls}) {
-      my $decl = $decls->{fc $_};
+    # not global scope
+    if ($decls != $gdecls) {
+      for (keys %{$decls}) {
+        my $decl = $decls->{fc $_};
 
-      next if $decl->{what} ne $DCL_SUBF and $decl->{what} ne $DCL_S;
+        next if $decl->{what} ne $DCL_SUBF and $decl->{what} ne $DCL_S;
 
-      # skip 'dcl-subf' for now as we don't have control of qualified, and
-      # 'likeds' with qualified.
-      next if $decl->{what} eq $DCL_SUBF;
+        # skip 'dcl-subf' for now as we don't have control of qualified, and
+        # 'likeds' with qualified.
+        next if $decl->{what} eq $DCL_SUBF;
 
-      $self->error($RULES_UNUSED_VARIABLE, $decl);
+        $self->error($RULES_UNUSED_VARIABLE, $decl);
+      }
     }
   });
+
+  for (keys %{$gdecls}) {
+    my $decl = $gdecls->{fc $_};
+
+    next if $decl->{what} ne $DCL_SUBF and $decl->{what} ne $DCL_S;
+
+    # skip 'dcl-subf' for now as we don't have control of qualified, and
+    # 'likeds' with qualified.
+    next if $decl->{what} eq $DCL_SUBF;
+
+    $self->error($RULES_UNUSED_VARIABLE, $decl);
+  }
 
   return $self;
 }
