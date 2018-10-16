@@ -123,7 +123,7 @@ sub subf
   my @params;
 
   while (my $stmt = $self->getstmt()) {
- 
+
     # skip blank lines
     next if $stmt->{code} =~ m{ ^ \s* $ }xsi;
 
@@ -357,13 +357,13 @@ sub parse
         }
       }
 
-      unless (defined $decl->{likeds}) {
-        $decl->{fields} = $self->subf();
+      next if (defined $decl->{likeds});
+      next if grep { m { extname }xsmi } @kws;
 
-        # FIXME ExtName
-        unless ($self->{stmt}->{code} =~ m{ end-ds }xsmi) {
-          $self->warn("expected 'end-ds'");
-        }
+      # sub-fields
+      $decl->{fields} = $self->subf();
+      unless ($self->{stmt}->{code} =~ m{ end-ds }xsmi) {
+        $self->warn("expected 'end-ds'");
       }
 
       next;
