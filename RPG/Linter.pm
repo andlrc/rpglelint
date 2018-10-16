@@ -6,9 +6,11 @@ use Data::Dumper;
 use Exporter;
 use JSON;
 
-my $DCL_DS = 'dcl-ds';
+my $DCL_PROC = 'dcl-proc';
+my $DCL_PR = 'dcl-pr';
 my $DCL_S = 'dcl-s';
 my $DCL_C = 'dcl-c';
+my $DCL_DS = 'dcl-ds';
 my $DCL_SUBF = 'dcl-subf';
 
 my $CALC_IDENT = 'ident';
@@ -394,6 +396,10 @@ sub lint_shadow
 
     main::declhash($decls, \@scopes, sub {
       my ($decl, $prevdecl) = @_;
+
+      # dcl-proc shadowing dcl-pr is ok.
+      return if ($prevdecl->{what} eq $DCL_PR && $decl->{what} eq $DCL_PROC);
+
       $self->error($RULES_SHADOW, $decl, $prevdecl);
     });
   });
