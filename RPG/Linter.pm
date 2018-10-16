@@ -38,21 +38,47 @@ my $RULES_UNUSED_VARIABLE = "unused-variable";
 my $RULES_REDEFINING_SYMBOL = "redefining-symbol";
 my $RULES_UNREACHABLE_CODE = "unreachable-code";
 my $RULES_SAME_CASING = "same-casing";
+my $RULES_PARAMETER_MISMATCH = "parameter-mismatch";
 
 my $default_rules = {
-  global => 0,
-  shadow => 0,
-  qualified => 0,
-  'uppercase-constant' => 0,
-  'undefined-reference' => 0,
-  subroutine => 0,
-  'uppercase-indicator' => 0,
-  indicator => 0,
-  'unused-variable' => 0,
-  'redefining-symbol' => 0,
-  'unreachable-code' => 0,
-  'same-casing' => 0
+  $RULES_GLOBAL => 0,
+  $RULES_SHADOW => 0,
+  $RULES_QUALIFIED => 0,
+  $RULES_UPPERCASE_CONSTANT => 0,
+  $RULES_UNDEFINED_REFERENCE => 0,
+  $RULES_SUBROUTINE => 0,
+  $RULES_UPPERCASE_INDICATOR => 0,
+  $RULES_INDICATOR => 0,
+  $RULES_UNUSED_VARIABLE => 0,
+  $RULES_REDEFINING_SYMBOL => 0,
+  $RULES_UNREACHABLE_CODE => 0,
+  $RULES_SAME_CASING => 0,
+  $RULES_PARAMETER_MISMATCH => 0
 };
+
+sub cmptype
+{
+  my ($a, $b) = @_;
+  return $a =~ s{ \s+ }{}xrg eq $b =~ s{ \s+ }{}xrg;
+}
+
+sub cmpkws
+{
+  my ($akws, $bkws) = @_;
+
+  my @akws = sort { $a cmp $b } map { s{ \s+ }{}xrg } @{$akws};
+  my @bkws = sort { $a cmp $b } map { s{ \s+ }{}xrg } @{$bkws};
+
+  for my $index (0..$#akws) {
+    my $akw = $akws[$index];
+    my $bkw = $bkws[$index];
+    return 0 unless defined $bkw;
+    return 0 unless $akw eq $bkw;
+  }
+
+  # same list
+  return 1;
+}
 
 sub sorterrors($$)
 {
@@ -88,14 +114,16 @@ sub loopscopes
 # calls $callback is a previous declaration is already defined
 sub declhash
 {
-  my ($decls, $scopes, $callback, $adddsdecl) = @_;
+  my ($decls, $scopes, %cfg) = @_;
   my ($scope) = @{$scopes};
 
   my $adddecl = sub {
     my ($name, $decl) = @_;
 
     my $prevdecl = $decls->{fc $name};
-    $callback->($decl, $prevdecl) if defined $prevdecl && defined $callback;
+    if (defined $prevdecl && defined $cfg{callback}) {
+      $cfg{callback}->($decl, $prevdecl);
+    }
     $decls->{fc $name} = $decl;
   };
 
@@ -111,7 +139,7 @@ sub declhash
         $adddecl->($decl->{name}, $decl);
       }
       else {
-        $adddecl->($decl->{name}, $decl) if ($adddsdecl);
+        $adddecl->($decl->{name}, $decl) if ($cfg{addds});
         if (defined $decl->{fields}) {
           $adddecl->($_->{name}, $_) for (@{$decl->{fields}});
         }
@@ -122,7 +150,7 @@ sub declhash
     }
   }
 
-  if (defined $scope->{procedures}) {
+  if ($cfg{addproc} && defined $scope->{procedures}) {
     for my $procname (keys %{$scope->{procedures}}) {
       my $proc = $scope->{procedures}->{$procname};
       $adddecl->($procname, $proc);
@@ -133,7 +161,7 @@ sub declhash
     $adddecl->($_->{name}, $_) for (@{$scope->{parameters}});
   }
 
-  return 1;
+  return $decls;
 }
 
 sub findlikeds
@@ -293,6 +321,11 @@ sub error
     my $note = $adderr->($what, $LINT_NOTE, "definition is here", $data[1]);
     $note->{linksto} = $error;
   }
+  elsif ($what eq $RULES_PARAMETER_MISMATCH) {
+    my $error = $adderr->($what, $LINT_WARN, sprintf("conflicting types for '%s'", $data[0]->{name}), $data[0]);
+    my $note = $adderr->($what, $LINT_NOTE, sprintf("previous declaration of '%s' was here", $data[1]->{name}), $data[1]);
+    $note->{linksto} = $error;
+  }
   else {
     die "unknown lint message";
   }
@@ -356,6 +389,10 @@ sub lint
     $self->lint_same_casing($scope);
   }
 
+  if ($self->{rules}->{$RULES_PARAMETER_MISMATCH}) {
+    $self->lint_parameter_mismatch($scope);
+  }
+
   my @errors = sort main::sorterrors @{$self->{linterrors}};
   $self->{linterrors} = \@errors;
   return $self->{linterrors};
@@ -394,14 +431,17 @@ sub lint_shadow
       $decls = $gdecls;
     }
 
-    main::declhash($decls, \@scopes, sub {
-      my ($decl, $prevdecl) = @_;
+    main::declhash($decls, \@scopes,
+      addproc => 1,
+      callback => sub {
+        my ($decl, $prevdecl) = @_;
 
-      # dcl-proc shadowing dcl-pr is ok.
-      return if ($prevdecl->{what} eq $DCL_PR && $decl->{what} eq $DCL_PROC);
+        # dcl-proc shadowing dcl-pr is ok.
+        return if ($prevdecl->{what} eq $DCL_PR && $decl->{what} eq $DCL_PROC);
 
-      $self->error($RULES_SHADOW, $decl, $prevdecl);
-    });
+        $self->error($RULES_SHADOW, $decl, $prevdecl);
+      }
+    );
   });
 
   return $self;
@@ -471,7 +511,7 @@ sub lint_undefined_reference
       $decls = $gdecls;
     }
 
-    main::declhash($decls, \@scopes);
+    main::declhash($decls, \@scopes, addproc => 1);
 
     # check if a 'likeds' is found
     for (@{$scope->{declarations}}) {
@@ -611,7 +651,7 @@ sub lint_unused_variable
       $decls = $gdecls;
     }
 
-    main::declhash($decls, \@scopes);
+    main::declhash($decls, \@scopes, addproc => 1);
 
     my $subrs = { %{$scope->{subroutines}} };
 
@@ -669,14 +709,17 @@ sub lint_redefining_symbol
 
   main::loopscopes($scope, sub {
     my @scopes = @_;
-    main::declhash({}, [$scopes[0]], sub {
-      my ($decl, $prevdecl) = @_;
+    main::declhash({}, [$scopes[0]],
+      addproc => 1,
+      callback => sub {
+        my ($decl, $prevdecl) = @_;
 
-      # dcl-proc isn't redefining a dcl-pr
-      return if ($prevdecl->{what} eq $DCL_PR && $decl->{what} eq $DCL_PROC);
+        # dcl-proc isn't redefining a dcl-pr
+        return if ($prevdecl->{what} eq $DCL_PR && $decl->{what} eq $DCL_PROC);
 
-      $self->error($RULES_REDEFINING_SYMBOL, $decl, $prevdecl);
-    });
+        $self->error($RULES_REDEFINING_SYMBOL, $decl, $prevdecl);
+      }
+    );
   });
 
   return $self;
@@ -854,8 +897,7 @@ sub lint_same_casing
       $decls = $gdecls;
     }
 
-    main::declhash($decls, \@scopes, undef, 1);
-
+    main::declhash($decls, \@scopes, addproc => 1, addds => 1);
 
     # check if a 'likeds' is found
     for (@{$scope->{declarations}}) {
@@ -872,6 +914,46 @@ sub lint_same_casing
         my $decl = $decls->{fc $_->{token}};
         if (defined $decl && $decl->{name} ne $_->{token}) {
           $self->error($RULES_SAME_CASING, $_, $decl);
+        }
+      }
+    }
+  });
+
+  return $self;
+}
+
+sub lint_parameter_mismatch
+{
+  my $self = shift;
+  my ($gscope) = @_;
+
+  main::loopscopes($gscope, sub {
+    my @scopes = @_;
+
+    my $decls = main::declhash({}, \@scopes);
+
+    for (keys %{$decls}) {
+      my $decl = $decls->{$_};
+      next unless $decl->{what} eq $DCL_PR;
+      my $proc = $gscope->{procedures}->{fc $decl->{name}};
+      if (!main::cmptype($proc->{returns}, $decl->{returns})) {
+        $self->error($RULES_PARAMETER_MISMATCH, $proc, $decl);
+        next;
+      }
+      for my $index (0..scalar(@{$decl->{parameters}}) - 1) {
+        my $prparm = $decl->{parameters}->[$index];
+        my $procparm = $proc->{parameters}->[$index];
+        if (!defined $procparm) {
+          $self->error($RULES_PARAMETER_MISMATCH, $proc, $decl);
+          last;
+        }
+        if (!main::cmptype($prparm->{type}, $procparm->{type})) {
+          $self->error($RULES_PARAMETER_MISMATCH, $proc, $decl);
+          last;
+        }
+        if (!main::cmpkws($prparm->{kws}, $procparm->{kws})) {
+          $self->error($RULES_PARAMETER_MISMATCH, $proc, $decl);
+          last;
         }
       }
     }

@@ -1,0 +1,12 @@
+t/36-mismatch-pr-proc.rpgle:30:10: warning: conflicting types for 'proc2' [-Wparameter-mismatch]
+ dcl-proc proc2;
+          ^
+t/36-mismatch-pr-proc.rpgle:8:8: note: previous declaration of 'proc2' was here
+ dcl-pr proc2 int(10);
+        ^
+t/36-mismatch-pr-proc.rpgle:37:10: warning: conflicting types for 'proc3' [-Wparameter-mismatch]
+ dcl-proc proc3;
+          ^
+t/36-mismatch-pr-proc.rpgle:13:8: note: previous declaration of 'proc3' was here
+ dcl-pr proc3 int(10);
+        ^
