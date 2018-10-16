@@ -4,6 +4,7 @@ use v5.16;
 
 use Data::Dumper;
 use Exporter;
+use JSON;
 
 my $DCL_DS = 'dcl-ds';
 my $DCL_S = 'dcl-s';
@@ -206,7 +207,17 @@ sub print_json
   my $self = shift;
   my (@errors) = @_;
 
-  die "WIP - JSON not supported yet";
+  my @mappederrs = map {
+    {
+      file => $_->{file},
+      line => $_->{lineno},
+      column => $_->{column},
+      severity => $_->{type},
+      message => $_->{msg}
+    }
+  } @errors;
+
+  print JSON::encode_json(\@mappederrs);
 
   return $self;
 }
