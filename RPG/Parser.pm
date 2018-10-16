@@ -130,7 +130,9 @@ sub subf
     # skip other compiler directive
     next if $stmt->{code} =~ m{ ^ \s* / }xsmi;
 
-    last unless $stmt->{code} =~ m{ (?: dcl-subf \s+ )? ($R_IDENT) \s+ ($R_TYPE) (?: \s+ ($R_KWS) )? }xsmi;
+    last unless $stmt->{code} =~ m{
+      (?: dcl-subf \s+ )? ($R_IDENT) \s+ ($R_TYPE) (?: \s+ ($R_KWS) )?
+    }xsmi;
 
     my @kws = split(/\s+/, defined $3 ? $3 : '');
 
@@ -221,7 +223,9 @@ sub parse
 
   while (my $stmt = $self->getstmt()) {
 
-    if ($stmt->{code} =~ m{ ^ \s* / \s* (?: copy | include ) \s+ (.*?) \s* $ }xsmi) {
+    if ($stmt->{code} =~ m{
+        ^ \s* / \s* (?: copy | include ) \s+ (.*?) \s* $
+      }xsmi) {
       my $parser = RPG::Parser->new;
       $parser->{include} = $parser->{include};
 
@@ -243,7 +247,9 @@ sub parse
     next if $stmt->{code} =~ m{ ctl-opt }xsmi;
 
     # dcl-proc
-    if ($stmt->{code} =~ m{ ^ \s* dcl-proc \s+ ($R_IDENT) ( \s+ export )? }xsmi) {
+    if ($stmt->{code} =~ m{
+        ^ \s* dcl-proc \s+ ($R_IDENT) ( \s+ export )?
+      }xsmi) {
       $stmt->calckw($1);
       my $proc = {
         name => $1,
@@ -270,26 +276,41 @@ sub parse
     }
 
     # dcl-pr
-    if ($stmt->{code} =~ m{ ^ \s* dcl-pr \s+ ($R_IDENT) (?: \s+ ($R_TYPE) )? }xsmi) {
+    if ($stmt->{code} =~ m{
+        ^ \s* dcl-pr \s+ ($R_IDENT) (?: \s+ ($R_TYPE) )?
+      }xsmi) {
       my $decl = $self->adddecl($DCL_PR, {
         name => $1,
         returns => defined $2 ? $2 : ''
       });
       $decl->{parameters} = $self->subf();
-      $self->warn("expected 'end-pr'") unless $self->{stmt}->{code} =~ m{ end-pr }xsmi;
+
+      unless ($self->{stmt}->{code} =~ m{ end-pr }xsmi) {
+        $self->warn("expected 'end-pr'");
+      }
+
       next;
     }
 
     # dcl-pi
-    if ($stmt->{code} =~ m{ ^ \s* dcl-pi \s+ ($R_IDENT | \*N) (?: \s+ ($R_TYPE) )? }xsmi) {
+    if ($stmt->{code} =~ m{
+        ^ \s* dcl-pi \s+ ($R_IDENT | \*N) (?: \s+ ($R_TYPE) )?
+      }xsmi) {
+
       $self->{scope}->{returns} = $2 if defined $2;
       $self->{scope}->{parameters} = $self->subf();
-      $self->warn("expected 'end-pi'") unless $self->{stmt}->{code} =~ m{ end-pi }xsmi;
+
+      unless ($self->{stmt}->{code} =~ m{ end-pi }xsmi) {
+        $self->warn("expected 'end-pi'");
+      }
       next;
     }
 
     # dcl-s
-    if ($stmt->{code} =~ m{ ^ \s* dcl-s \s+ ($R_IDENT) \s+ ($R_TYPE) (?: \s+ ($R_KWS) )? }xsmi) {
+    if ($stmt->{code} =~ m{
+        ^ \s* dcl-s \s+ ($R_IDENT) \s+ ($R_TYPE) (?: \s+ ($R_KWS) )?
+      }xsmi) {
+
       my @kws = split(/\s+/, defined $3 ? $3 : '');
       $self->adddecl($DCL_S, {
         name => $1,
@@ -301,7 +322,9 @@ sub parse
     }
 
     # dcl-c
-    if ($stmt->{code} =~ m{ ^ \s* dcl-c \s+ ($R_IDENT) (?: \s+ const \s* \( (.*?) \) | (.*?) ) ; }xsmi) {
+    if ($stmt->{code} =~ m{
+        ^ \s* dcl-c \s+ ($R_IDENT) (?: \s+ const \s* \( (.*?) \) | (.*?) ) ;
+      }xsmi) {
       $self->adddecl($DCL_C, {
         name => $1,
         value => ($2 or $3)
@@ -311,7 +334,9 @@ sub parse
     }
 
     # dcl-ds
-    if ($stmt->{code} =~ m{ ^ \s* dcl-ds \s+ ($R_IDENT) (?: \s+ ($R_KWS) )? }xsmi) {
+    if ($stmt->{code} =~ m{
+        ^ \s* dcl-ds \s+ ($R_IDENT) (?: \s+ ($R_KWS) )?
+      }xsmi) {
       my @kws = split(/\s+/, defined $2 ? $2 : '');
 
       my $decl = $self->adddecl($DCL_DS, {
@@ -334,7 +359,11 @@ sub parse
 
       unless (defined $decl->{likeds}) {
         $decl->{fields} = $self->subf();
-        $self->warn("expected 'end-ds'") unless $self->{stmt}->{code} =~ m{ end-ds }xsmi;
+
+        # FIXME ExtName
+        unless ($self->{stmt}->{code} =~ m{ end-ds }xsmi) {
+          $self->warn("expected 'end-ds'");
+        }
       }
 
       next;
@@ -363,8 +392,9 @@ sub parse
       next;
     }
 
-    while (my $kw = $stmt->{code} =~ m{ ( $R_STR | $R_BIF | $R_SUBF | $R_OPCODE
-                                        | $R_IDENT | $R_NUM | $R_IND | $R_OP ) }xsmigp) {
+    while (my $kw = $stmt->{code} =~ m{
+        ( $R_STR | $R_BIF | $R_SUBF | $R_OPCODE | $R_IDENT | $R_NUM | $R_IND | $R_OP )
+      }xsmigp) {
 
       my @prelines = split(/\n/, ${^PREMATCH});
       my $calc = {

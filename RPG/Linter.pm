@@ -56,8 +56,11 @@ my $default_rules = {
 sub sorterrors($$)
 {
   my ($a, $b) = @_;
-  my $ano = defined $a->{linksto} ? $a->{linksto}->{lineno} + 0.1 : $a->{lineno};
-  my $bno = defined $b->{linksto} ? $b->{linksto}->{lineno} + 0.1 : $b->{lineno};
+  my ($al, $bl) = ($a->{linksto}, $b->{linksto});
+
+  # place linked notes after the warnings
+  my $ano = defined $al ? $al->{lineno} + 0.1 : $a->{lineno};
+  my $bno = defined $bl ? $bl->{lineno} + 0.1 : $b->{lineno};
 
   return $ano <=> $bno;
 }
@@ -164,13 +167,15 @@ sub print_unix
   for my $error (@errors) {
     if ($error->{type} eq $LINT_WARN) {
       printf("%s:%d:%d: ${C_WARN}warning:$C_RESET %s [$C_WARN-W%s$C_RESET]\n",
-             $error->{file}, $error->{lineno}, $error->{column}, $error->{msg}, $error->{what});
-      $self->print_unix_code($error);
+             $error->{file}, $error->{lineno}, $error->{column}, $error->{msg},
+             $error->{what});
+      $self->print_unix_code($C_WARN, $error);
     }
     elsif ($error->{type} eq $LINT_NOTE) {
       printf("%s:%d:%d: ${C_NOTE}note:$C_RESET %s\n",
-             $error->{file}, $error->{lineno}, $error->{column}, $error->{msg});
-      $self->print_unix_code($error);
+             $error->{file}, $error->{lineno}, $error->{column},
+             $error->{msg});
+      $self->print_unix_code($C_NOTE, $error);
     }
   }
 
@@ -180,14 +185,7 @@ sub print_unix
 sub print_unix_code
 {
   my $self = shift;
-  my ($error) = @_;
-  my $color = '';
-
-  if ($error->{type} eq $LINT_WARN) {
-    $color = $C_WARN;
-  } elsif ($error->{type} eq $LINT_NOTE) {
-    $color = $C_NOTE;
-  }
+  my ($color, $error) = @_;
 
   my $hltext = $error->{line};
 
@@ -237,13 +235,19 @@ sub error
     $adderr->($what, $LINT_WARN, sprintf("'%s' undeclared", $data[0]->{token}), $data[0]);
   }
   elsif ($what eq $RULES_GLOBAL) {
-    $adderr->($what, $LINT_WARN, sprintf("global declaration '%s' is not allowed", $data[0]->{name}), $data[0]);
+    $adderr->($what, $LINT_WARN,
+              sprintf("global declaration '%s' is not allowed", $data[0]->{name}),
+              $data[0]);
   }
   elsif ($what eq $RULES_QUALIFIED) {
-    $adderr->($what, $LINT_WARN, sprintf("data structure '%s' needs to be qualified", $data[0]->{name}), $data[0]);
+    $adderr->($what, $LINT_WARN,
+              sprintf("data structure '%s' needs to be qualified", $data[0]->{name}),
+              $data[0]);
   }
   elsif ($what eq $RULES_UPPERCASE_CONSTANT) {
-    $adderr->($what, $LINT_WARN, sprintf("constant '%s' needs to be all uppercase", $data[0]->{name}), $data[0]);
+    $adderr->($what, $LINT_WARN,
+              sprintf("constant '%s' needs to be all uppercase", $data[0]->{name}),
+              $data[0]);
   }
   elsif ($what eq $RULES_SHADOW) {
     my $error = $adderr->($what, $LINT_WARN, sprintf("declaration of '%s' shadows a global declaration", $data[0]->{name}), $data[0]);
@@ -472,8 +476,9 @@ sub lint_undefined_reference
 
     for (@{$scope->{calculations}}) {
       if ($_->{what} eq $CALC_IDENT) {
-        # check if identifier is defined
-        $self->error($RULES_UNDEFINED_REFERENCE, $_) unless defined $decls->{fc $_->{token}};
+        unless (defined $decls->{fc $_->{token}}) {
+          $self->error($RULES_UNDEFINED_REFERENCE, $_);
+        }
       }
       elsif ($_->{what} eq $CALC_SUBF) {
         # check to see if the subfield is part of the data structure
@@ -539,7 +544,9 @@ sub lint_indicator
     for (@{$scope->{calculations}}) {
       if ($_->{what} eq $CALC_IND) {
         # Allow *ON, *OFF, *NULL, *BLANK, *BLANKS, and *OMIT
-        next if $_->{token} =~ m{ \* (?: ON | OFF | NULL | BLANK | BLANKS | OMIT ) }xsmi;
+        next if $_->{token} =~ m{
+          \* (?: ON | OFF | NULL | BLANK | BLANKS | OMIT )
+        }xsmi;
 
         $self->error($RULES_INDICATOR, $_);
       }
@@ -588,8 +595,8 @@ sub lint_unused_variable
 
       next if $decl->{what} ne $DCL_SUBF and $decl->{what} ne $DCL_S;
 
-      # skip 'dcl-subf' for now as we don't have control of qualified, and 'likeds'
-      # with qualified.
+      # skip 'dcl-subf' for now as we don't have control of qualified, and
+      # 'likeds' with qualified.
       next if $decl->{what} eq $DCL_SUBF;
 
       $self->error($RULES_UNUSED_VARIABLE, $decl);
@@ -699,26 +706,31 @@ sub lint_unreachable_code
     return undef if $calc->{what} ne $CALC_OPCODE;
 
     if ($calc->{token} =~ m{ ^ if $ }xsmi) {
-      return $branchstmt->($scope, $calcs, 'endif', ['else', 'elseif'], ['return'], $preturned);
+      return $branchstmt->($scope, $calcs, 'endif', ['else', 'elseif'],
+                           ['return'], $preturned);
     }
     elsif ($calc->{token} =~ m{ ^ select $ }xsmi) {
-      return $branchstmt->($scope, $calcs, 'endsl', ['when', 'other'], ['return'], $preturned);
+      return $branchstmt->($scope, $calcs, 'endsl', ['when', 'other'],
+                           ['return'], $preturned);
     }
     elsif ($calc->{token} =~ m{ ^ do[wu] $ }xsmi) {
-      return $branchstmt->($scope, $calcs, 'enddo', [], ['return', 'iter', 'leave'], $preturned);
+      return $branchstmt->($scope, $calcs, 'enddo', [],
+                           ['return', 'iter', 'leave'], $preturned);
     }
     elsif ($calc->{token} =~ m{ ^ for $ }xsmi) {
-      return $branchstmt->($scope, $calcs, 'endfor', [], ['return', 'iter', 'leave'], $preturned);
+      return $branchstmt->($scope, $calcs, 'endfor', [],
+                           ['return', 'iter', 'leave'], $preturned);
     }
     elsif ($calc->{token} =~ m{ ^ monitor $ }xsmi) {
-      return $branchstmt->($scope, $calcs, 'endmon', ['on-error'], ['return'], $preturned);
+      return $branchstmt->($scope, $calcs, 'endmon', ['on-error'],
+                           ['return'], $preturned);
     }
     elsif ($calc->{token} =~ m{ ^ exsr $ }xsmi) {
       my $unreached = $exsrstmt->($scope, $calcs, $preturned);
       return $unreached if defined $unreached;
 
-      # FIXME: allow every branch word i.e 'else', 'elseif', and 'endif' when in
-      # an 'if' branch.
+      # allow every branch word i.e 'else', 'elseif', and 'endif' when in an
+      # 'if' branch.
       if (${$preturned}) {
         while (my $nextcalc = shift(@{$calcs})) {
           if ($calc->{stmt} ne $nextcalc->{stmt}) {
