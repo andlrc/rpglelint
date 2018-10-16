@@ -1,0 +1,6 @@
+t/35-redef-pr-proc.rpgle:4:7: warning: redefinition of 'myint' as a different kind of symbol [-Wredefining-symbol]
+ dcl-s myint int(10);
+       ^
+t/35-redef-pr-proc.rpgle:3:7: note: previous definition is here
+ dcl-s myint int(10);
+       ^

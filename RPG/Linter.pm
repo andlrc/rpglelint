@@ -671,6 +671,10 @@ sub lint_redefining_symbol
     my @scopes = @_;
     main::declhash({}, [$scopes[0]], sub {
       my ($decl, $prevdecl) = @_;
+
+      # dcl-proc isn't redefining a dcl-pr
+      return if ($prevdecl->{what} eq $DCL_PR && $decl->{what} eq $DCL_PROC);
+
       $self->error($RULES_REDEFINING_SYMBOL, $decl, $prevdecl);
     });
   });
