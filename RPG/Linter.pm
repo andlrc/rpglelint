@@ -15,6 +15,7 @@ my $CALC_IDENT = 'ident';
 my $CALC_SUBF = 'subf';
 my $CALC_IND = 'ind';
 my $CALC_OPCODE = 'opcode';
+my $CALC_EXSR = 'exsr';
 
 my $C_WARN = -t 1 ? "\033[1;35m" : '';
 my $C_NOTE = -t 1 ? "\033[1;36m" : '';
@@ -484,14 +485,23 @@ sub lint_undefined_reference
         unless (defined $decls->{fc $_->{token}}) {
           $self->error($RULES_UNDEFINED_REFERENCE, $_);
         }
+        next;
       }
-      elsif ($_->{what} eq $CALC_SUBF) {
+
+      if ($_->{what} eq $CALC_SUBF) {
         # check to see if the subfield is part of the data structure
         my $token = $_->{token};
         my $dschain = main::findlikeds($_->{ds}, @scopes);
         my $ds = $dschain->[-1];
 
         unless (grep { $_->{name} eq $token } @{$ds->{fields}}) {
+          $self->error($RULES_UNDEFINED_REFERENCE, $_);
+        }
+        next;
+      }
+
+      if ($_->{what} eq $CALC_EXSR) {
+        unless (defined $scope->{subroutines}->{fc $_->{name}}) {
           $self->error($RULES_UNDEFINED_REFERENCE, $_);
         }
       }
@@ -569,6 +579,21 @@ sub lint_unused_variable
   my $gdecls = undef;
   my $decls = undef;
 
+  my $checkdecls = sub {
+    my ($decls) = @_;
+
+    for (keys %{$decls}) {
+      my $decl = $decls->{$_};
+      next unless $decl->{what} =~ m{ ^ (?: $DCL_SUBF | $DCL_S ) $ }xsmi;
+
+      # skip 'dcl-subf' for now as we don't have control of qualified, and
+      # 'likeds' with qualified.
+      next if $decl->{what} eq $DCL_SUBF;
+
+      $self->error($RULES_UNUSED_VARIABLE, $decl);
+    }
+  };
+
   main::loopscopes($scope, sub {
     my @scopes = @_;
     my ($scope) = @scopes;
@@ -581,6 +606,8 @@ sub lint_unused_variable
     }
 
     main::declhash($decls, \@scopes);
+
+    my $subrs = { %{$scope->{subroutines}} };
 
     # check if a 'likeds' is found
     for (@{$scope->{declarations}}) {
@@ -595,6 +622,11 @@ sub lint_unused_variable
     }
 
     for (@{$scope->{calculations}}) {
+      if ($_->{what} eq $CALC_EXSR) {
+        if (defined $subrs->{fc $_->{token}}) {
+          delete $subrs->{fc $_->{token}};
+        }
+      }
       if ($_->{what} eq $CALC_IDENT) {
         if (defined $decls->{fc $_->{token}}) {
           delete $decls->{fc $_->{token}};
@@ -602,36 +634,23 @@ sub lint_unused_variable
         elsif (defined $gdecls->{fc $_->{token}}) {
           delete $gdecls->{fc $_->{token}};
         }
+        next;
       }
     }
 
     # not global scope
     if ($decls != $gdecls) {
-      for (keys %{$decls}) {
-        my $decl = $decls->{fc $_};
-
-        next if $decl->{what} ne $DCL_SUBF and $decl->{what} ne $DCL_S;
-
-        # skip 'dcl-subf' for now as we don't have control of qualified, and
-        # 'likeds' with qualified.
-        next if $decl->{what} eq $DCL_SUBF;
-
-        $self->error($RULES_UNUSED_VARIABLE, $decl);
-      }
+      $checkdecls->($decls);
     }
+
+    for (keys %{$subrs}) {
+      my $subr = $subrs->{$_};
+      $self->error($RULES_UNUSED_VARIABLE, $subr);
+    }
+
   });
 
-  for (keys %{$gdecls}) {
-    my $decl = $gdecls->{fc $_};
-
-    next if $decl->{what} ne $DCL_SUBF and $decl->{what} ne $DCL_S;
-
-    # skip 'dcl-subf' for now as we don't have control of qualified, and
-    # 'likeds' with qualified.
-    next if $decl->{what} eq $DCL_SUBF;
-
-    $self->error($RULES_UNUSED_VARIABLE, $decl);
-  }
+  $checkdecls->($gdecls);
 
   return $self;
 }
@@ -662,10 +681,9 @@ sub lint_unreachable_code
   my $checkcalcs;
 
   my $exsrstmt = sub {
-    my ($scope, $calcs, $preturned) = @_;
-    my $calc = shift(@{$calcs});
+    my ($scope, $calc, $calcs, $preturned) = @_;
     my $subname = $calc->{token};
-    my $sub = $scope->{subroutines}->{$subname};
+    my $sub = $scope->{subroutines}->{fc $subname};
 
     my $subcalcs = [ @{$sub->{calculations}} ];
     while (my $calc = shift(@{$subcalcs})) {
@@ -733,30 +751,9 @@ sub lint_unreachable_code
     my ($scope, $calc, $calcs, $preturned) = @_;
 
     return undef unless defined $calc;
-    return undef if $calc->{what} ne $CALC_OPCODE;
 
-    if ($calc->{token} =~ m{ ^ if $ }xsmi) {
-      return $branchstmt->($scope, $calcs, 'endif', ['else', 'elseif'],
-                           ['return'], $preturned);
-    }
-    elsif ($calc->{token} =~ m{ ^ select $ }xsmi) {
-      return $branchstmt->($scope, $calcs, 'endsl', ['when', 'other'],
-                           ['return'], $preturned);
-    }
-    elsif ($calc->{token} =~ m{ ^ do[wu] $ }xsmi) {
-      return $branchstmt->($scope, $calcs, 'enddo', [],
-                           ['return', 'iter', 'leave'], $preturned);
-    }
-    elsif ($calc->{token} =~ m{ ^ for $ }xsmi) {
-      return $branchstmt->($scope, $calcs, 'endfor', [],
-                           ['return', 'iter', 'leave'], $preturned);
-    }
-    elsif ($calc->{token} =~ m{ ^ monitor $ }xsmi) {
-      return $branchstmt->($scope, $calcs, 'endmon', ['on-error'],
-                           ['return'], $preturned);
-    }
-    elsif ($calc->{token} =~ m{ ^ exsr $ }xsmi) {
-      my $unreached = $exsrstmt->($scope, $calcs, $preturned);
+    if ($calc->{what} =~ $CALC_EXSR) {
+      my $unreached = $exsrstmt->($scope, $calc, $calcs, $preturned);
       return $unreached if defined $unreached;
 
       # allow every branch word i.e 'else', 'elseif', and 'endif' when in an
@@ -770,7 +767,35 @@ sub lint_unreachable_code
       }
       return undef;
     }
-    elsif ($calc->{token} =~ m{ ^ return $ }xsmi) {
+
+    return undef if $calc->{what} ne $CALC_OPCODE;
+
+    if ($calc->{token} =~ m{ ^ if $ }xsmi) {
+      return $branchstmt->($scope, $calcs, 'endif', ['else', 'elseif'],
+                           ['return'], $preturned);
+    }
+
+    if ($calc->{token} =~ m{ ^ select $ }xsmi) {
+      return $branchstmt->($scope, $calcs, 'endsl', ['when', 'other'],
+                           ['return'], $preturned);
+    }
+
+    if ($calc->{token} =~ m{ ^ do[wu] $ }xsmi) {
+      return $branchstmt->($scope, $calcs, 'enddo', [],
+                           ['return', 'iter', 'leave'], $preturned);
+    }
+
+    if ($calc->{token} =~ m{ ^ for $ }xsmi) {
+      return $branchstmt->($scope, $calcs, 'endfor', [],
+                           ['return', 'iter', 'leave'], $preturned);
+    }
+
+    if ($calc->{token} =~ m{ ^ monitor $ }xsmi) {
+      return $branchstmt->($scope, $calcs, 'endmon', ['on-error'],
+                           ['return'], $preturned);
+    }
+
+    if ($calc->{token} =~ m{ ^ return $ }xsmi) {
       ${$preturned} = 1;
       while (my $nextcalc = shift(@{$calcs})) {
         if ($calc->{stmt} ne $nextcalc->{stmt}) {

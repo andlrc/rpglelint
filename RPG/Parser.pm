@@ -18,6 +18,7 @@ my $CALC_IDENT = 'ident';
 my $CALC_SUBF = 'subf';
 my $CALC_NUM = 'num';
 my $CALC_OPCODE = 'opcode';
+my $CALC_EXSR = 'exsr';
 my $CALC_IND = 'ind';
 my $CALC_OP = 'op';
 
@@ -38,7 +39,7 @@ my $R_OPCODE = '(?: \b select \b | \b when \b | \b other \b | \b endsl \b'
              . '  | \b or \b | \b and \b | \b not \b'
              . '  | \b do[uw] \b | \b iter \b | \b leave \b | \b enddo \b'
              . '  | \b for \b | \b endfor \b'
-             . '  | \b begsr \b | \b exsr \b | \b leavesr \b | \b endsr \b'
+             . '  | \b begsr \b | \b leavesr \b | \b endsr \b'
              . '  | \b monitor \b | \b on-error \b | \b endmon \b'
              . '  | \b return \b)';
 
@@ -265,7 +266,7 @@ sub parse
         subroutines => {}
       };
 
-      $self->{scope}->{procedures}->{$1} = $proc;
+      $self->{scope}->{procedures}->{fc $1} = $proc;
       $self->setscope($proc);
       next;
     }
@@ -382,13 +383,28 @@ sub parse
         calculations => [],
       };
 
-      $self->{scope}->{subroutines}->{$1} = $sub;
+      $self->{scope}->{subroutines}->{fc $1} = $sub;
       $self->setscope($sub);
       next;
     }
 
     if ($stmt->{code} =~ m{ ^ \s* endsr \s* ; }xsmi) {
       $self->popscope();
+      next;
+    }
+
+    if ($stmt->{code} =~ m{ ^ \s* exsr \s+ ($R_IDENT) \s* ; }xsmi) {
+      $stmt->calckw($1);
+      push(@{$self->{scope}->{calculations}}, {
+        what => $CALC_EXSR,
+        file => $self->{file},
+        name => $1,
+        token => $1, # TODO: Should be removed?
+        stmt => $stmt,
+        line => $stmt->{line},
+        lineno => $stmt->{lineno},
+        column => $stmt->{column}
+      });
       next;
     }
 
