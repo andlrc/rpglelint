@@ -36,7 +36,7 @@ my $R_OP = '(?:<> | >= | <= | > | < | = | \+= | -= | \+ | - | or | and | not)';
 my $R_BIF = '% ' . $R_IDENT;
 my $R_OPCODE = '(?: \b select \b | \b when \b | \b other \b | \b endsl \b'
              . '  | \b if \b | \b elseif \b | \b else \b | \b endif \b'
-             . '  | \b or \b | \b and \b | \b not \b'
+             . '  | \b to \b | \b or \b | \b and \b | \b not \b'
              . '  | \b do[uw] \b | \b iter \b | \b leave \b | \b enddo \b'
              . '  | \b for \b | \b endfor \b'
              . '  | \b begsr \b | \b leavesr \b | \b endsr \b'
