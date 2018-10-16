@@ -59,6 +59,10 @@ sub new
     # blank line
     $self->{code} = $code;
   }
+  elsif ($code =~ m{ ^ \s* / .* $ }xsi) {
+    # compiler directive
+    $self->{code} = $code;
+  }
   elsif ($code !~ m{ ; \s* $ }xsmi) {
     # continuously line
     while (my $line = <$fh>) {

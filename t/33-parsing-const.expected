@@ -1,0 +1,3 @@
+t/33-parsing-const.rpgle:6:34: warning: 'C_CEND' undeclared [-Wundefined-reference]
+ return C_BANG + C_AND + C_CBEG + C_CEND;
+                                  ^
