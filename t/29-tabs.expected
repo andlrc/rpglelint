@@ -1,0 +1,3 @@
+t/29-tabs.rpgle:2:8: warning: global declaration 'key' is not allowed [-Wglobal]
+  dcl-s key int(10);
+        ^
