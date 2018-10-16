@@ -13,16 +13,14 @@ my $parser = RPG::Parser->new;
 my $linter = RPG::Linter->new;
 
 my $dump = 0;
+my $format = ''; # default is unix
 
 sub parseopts
 {
   my ($opts) = @_;
 
   GetOptionsFromArray($opts,
-    'f|format=s' => sub {
-      my ($name, $value) = @_;
-      $linter->setformat($value);
-    },
+    'f|format=s' => \$format,
     '--dump' => \$dump,
     'I|include=s' => sub {
       my ($name, $value) = @_;
@@ -61,7 +59,14 @@ for my $file (@ARGV) {
   my $scope = $parser->parse($file);
   if ($dump) {
     print Dumper($scope);
-  } else {
-    $linter->lint($scope);
+  }
+  else {
+    my $errors = $linter->lint($scope);
+    if ($format eq "json") {
+      $linter->print_json($errors);
+    }
+    else {
+      $linter->print_unix($errors);
+    }
   }
 }

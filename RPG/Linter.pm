@@ -16,9 +16,6 @@ my $CALC_SUBF = 'subf';
 my $CALC_IND = 'ind';
 my $CALC_OPCODE = 'opcode';
 
-my $FORMAT_UNIX = 'unix';
-my $FORMAT_JSON = 'json';
-
 my $C_WARN = -t 1 ? "\033[1;35m" : '';
 my $C_NOTE = -t 1 ? "\033[1;36m" : '';
 my $C_RESET = -t 1 ? "\033[0m" : '';
@@ -163,9 +160,9 @@ package RPG::Linter;
 sub print_unix
 {
   my $self = shift;
-  my (@errors) = @_;
+  my ($errors) = @_;
 
-  for my $error (@errors) {
+  for my $error (@{$errors}) {
     if ($error->{type} eq $LINT_WARN) {
       printf("%s:%d:%d: ${C_WARN}warning:$C_RESET %s [$C_WARN-W%s$C_RESET]\n",
              $error->{file}, $error->{lineno}, $error->{column}, $error->{msg},
@@ -205,7 +202,7 @@ sub print_unix_code
 sub print_json
 {
   my $self = shift;
-  my (@errors) = @_;
+  my ($errors) = @_;
 
   my @mappederrs = map {
     {
@@ -215,7 +212,7 @@ sub print_json
       severity => $_->{type},
       message => $_->{msg}
     }
-  } @errors;
+  } @{$errors};
 
   print JSON::encode_json(\@mappederrs);
 
@@ -305,6 +302,7 @@ sub lint
   my $self = shift;
   my ($scope) = @_;
 
+  $self->{linterrors} = [];
   $self->{file} = $scope->{file};
 
   if ($self->{rules}->{$RULES_GLOBAL}) {
@@ -355,16 +353,9 @@ sub lint
     $self->lint_same_casing($scope);
   }
 
-  my @errors;
-
-  if ($self->{format} eq $FORMAT_UNIX) {
-    $self->print_unix(sort main::sorterrors @{$self->{linterrors}});
-  }
-  elsif ($self->{format} eq $FORMAT_JSON) {
-    $self->print_json(sort main::sorterrors @{$self->{linterrors}});
-  }
-
-  return $self;
+  my @errors = sort main::sorterrors @{$self->{linterrors}};
+  $self->{linterrors} = \@errors;
+  return $self->{linterrors};
 }
 
 sub lint_global
@@ -833,29 +824,11 @@ sub new
 {
   my $class = shift;
   my $self = {
-    rules => $default_rules,
-    linterrors => [],
-    format => "unix"
+    rules => $default_rules
   };
   bless($self, $class);
 
   return $self;
-}
-
-sub setformat
-{
-  my $self = shift;
-  my ($format) = @_;
-
-  if ($format eq $FORMAT_UNIX) {
-    $self->{format} = $format;
-  }
-  elsif ($format eq $FORMAT_JSON) {
-    $self->{format} = $format;
-  }
-  else {
-    die "Unknown format '$format'";
-  }
 }
 
 sub setoption
