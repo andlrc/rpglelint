@@ -191,7 +191,10 @@ sub print_unix_code
 
   my $pre = $error->{column} - 1;
   # (.\w*) is used to support highlighting '*ON' and '%subst'
-  $hltext =~ s{ ^ (.{$pre}) (.\w*) }{$1${color}$2$C_RESET}xsmi;
+  $hltext =~ s{ ^ (.{$pre}) (.\w*) }{
+    my $ref = $2;
+    ($1 =~ s/\t/ /gr) . $color . $ref . $C_RESET
+  }xsmie;
   printf(" %s", $hltext);
   printf("%s${color}^$C_RESET\n", " " x $error->{column});
 
