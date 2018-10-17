@@ -1,5 +1,3 @@
-#!/usr/bin/env perl
-
 =head1 NAME
 
 rpglelint - Lint ILE/RPG Programs
@@ -183,71 +181,3 @@ This program is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut
-
-use strict;
-use warnings;
-use v5.16;
-
-use Getopt::Long qw{ GetOptionsFromArray :config no_ignore_case gnu_compat bundling };
-use Pod::Usage;
-
-use RPG::Parser;
-use RPG::Linter;
-use Data::Dumper;
-
-my $parser = RPG::Parser->new;
-my $linter = RPG::Linter->new;
-
-my $dump = 0;
-my $format = ''; # default is unix
-
-sub parseopts
-{
-  my ($opts) = @_;
-
-  my $rules_default = rules_default();
-  my $rules_all = rules_all();
-  my $rules_extra = rules_extra();
-
-  GetOptionsFromArray($opts,
-    'f|format=s' => \$format,
-    '--dump' => \$dump,
-    'I|include=s' => sub {
-      my ($name, $value) = @_;
-      push(@{$parser->{include}}, glob($value));
-    },
-    'W=s' => sub {
-      my ($name, $option) = @_;
-      $linter->setoption($option);
-    },
-    'h|help' => sub {
-      pod2usage( -verbose => 99, -sections => "SYNOPSIS|DESCRIPTION|WARNINGS" );
-      exit 0;
-    }
-  ) or pod2usage( -verbose => 0, -exitval => 2 );
-}
-
-if (defined $ENV{RPGLELINT_INCLUDE}) {
-  push(@{$parser->{include}}, glob($_)) for split(/:/, $ENV{RPGLELINT_INCLUDE});
-}
-
-parseopts(\@ARGV);
-$parser->{parseopts} = \&parseopts;
-
-@ARGV = ('-') if @ARGV < 1;
-
-for my $file (@ARGV) {
-  my $scope = $parser->parse($file);
-  if ($dump) {
-    print Dumper($scope);
-  }
-  else {
-    my $errors = $linter->lint($scope);
-    if ($format eq "json") {
-      $linter->print_json($errors);
-    }
-    else {
-      $linter->print_unix($errors);
-    }
-  }
-}

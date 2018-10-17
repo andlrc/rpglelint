@@ -1,10 +1,10 @@
-all:	rpglelint.1perl README
+all:	rpglelint.1perl README.pod
 .PHONY:	all
 
 rpglelint.1perl:	rpglelint
 	pod2man $< > $@
-README:			rpglelint
-	pod2text $< > $@
+README.pod:		rpglelint
+	sed '/=head1/,/=cut/!d' $< > $@
 
 test:
 	./runtests
