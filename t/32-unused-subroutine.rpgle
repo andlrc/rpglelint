@@ -1,4 +1,4 @@
-// rpglelint: -Wunused-variable
+// rpglelint: -Wunused-subroutine
 
 exsr shouldWork;
 

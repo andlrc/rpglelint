@@ -105,6 +105,7 @@ sub popscope
 sub subf
 {
   my $self = shift;
+  my ($what) = @_;
 
   my @params;
 
@@ -125,7 +126,7 @@ sub subf
     $stmt->calckw($1);
 
     push(@params, {
-        what => main::DCL_SUBF,
+        what => $what,
         file => $stmt->{file},
         stmt => $stmt,
         name => $1,
@@ -284,7 +285,7 @@ sub parse
         name => $1,
         returns => defined $2 ? $2 : ''
       });
-      $decl->{parameters} = $self->subf();
+      $decl->{parameters} = $self->subf(main::DCL_PARM);
 
       unless ($self->{stmt}->{code} =~ m{ end-pr }xsmi) {
         $self->warn("expected 'end-pr'");
@@ -299,7 +300,7 @@ sub parse
       }xsmi) {
 
       $self->{scope}->{returns} = $2 if defined $2;
-      $self->{scope}->{parameters} = $self->subf();
+      $self->{scope}->{parameters} = $self->subf(main::DCL_PARM);
 
       unless ($self->{stmt}->{code} =~ m{ end-pi }xsmi) {
         $self->warn("expected 'end-pi'");
@@ -362,7 +363,7 @@ sub parse
       next if grep { m { extname }xsmi } @kws;
 
       # sub-fields
-      $decl->{fields} = $self->subf();
+      $decl->{fields} = $self->subf(main::DCL_SUBF);
       unless ($self->{stmt}->{code} =~ m{ end-ds }xsmi) {
         $self->warn("expected 'end-ds'");
       }

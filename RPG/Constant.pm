@@ -9,6 +9,7 @@ use constant DCL_S => 'dcl-s';
 use constant DCL_C => 'dcl-c';
 use constant DCL_DS => 'dcl-ds';
 use constant DCL_SUBF => 'dcl-subf';
+use constant DCL_PARM => 'dcl-parm';
 
 use constant CALC_STR => 'str';
 use constant CALC_BIF => 'bif';
@@ -31,7 +32,8 @@ our %EXPORT_TAGS = (
     'DCL_S',
     'DCL_C',
     'DCL_DS',
-    'DCL_SUBF'
+    'DCL_SUBF',
+    'DCL_PARM'
   ],
   CALC => [
     'CALC_STR',

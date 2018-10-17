@@ -1,0 +1,9 @@
+t/39-unused-var.rpgle:3:10: warning: 'myproc' defined but not used [-Wunused-procedure]
+ dcl-proc myproc;
+          ^
+t/39-unused-var.rpgle:5:5: warning: 'myparm' defined but not used [-Wunused-parameter]
+     myparm int(10);
+     ^
+t/39-unused-var.rpgle:18:7: warning: 'myint' defined but not used [-Wunused-variable]
+ dcl-s myint int(10);
+       ^

@@ -19,6 +19,9 @@ my $RULES_SHADOW = "shadow";
 my $RULES_SUBROUTINE = "subroutine";
 my $RULES_UNDEFINED_REFERENCE = "undefined-reference";
 my $RULES_UNREACHABLE_CODE = "unreachable-code";
+my $RULES_UNUSED_PARAMETER = "unused-parameter";
+my $RULES_UNUSED_PROCEDURE = "unused-procedure";
+my $RULES_UNUSED_SUBROUTINE = "unused-subroutine";
 my $RULES_UNUSED_VARIABLE = "unused-variable";
 my $RULES_UPPERCASE_CONSTANT = "uppercase-constant";
 my $RULES_UPPERCASE_INDICATOR = "uppercase-indicator";
@@ -35,6 +38,9 @@ my $rules_default = {
   $RULES_SUBROUTINE => 0,
   $RULES_UNDEFINED_REFERENCE => 0,
   $RULES_UNREACHABLE_CODE => 0,
+  $RULES_UNUSED_PARAMETER => 0,
+  $RULES_UNUSED_PROCEDURE => 0,
+  $RULES_UNUSED_SUBROUTINE => 0,
   $RULES_UNUSED_VARIABLE => 0,
   $RULES_UPPERCASE_CONSTANT => 0,
   $RULES_UPPERCASE_INDICATOR => 0,
@@ -56,6 +62,9 @@ my $rules_all = {
 # turned on with -Wextra
 my $rules_extra = {
   $RULES_SAME_CASING => 0,
+  $RULES_UNUSED_PARAMETER => 0,
+  $RULES_UNUSED_PROCEDURE => 0,
+  $RULES_UNUSED_SUBROUTINE => 0,
   $RULES_UNUSED_VARIABLE => 0,
 };
 
@@ -117,6 +126,22 @@ sub sorterrors($$)
   return $ano <=> $bno;
 }
 
+sub isdsqual
+{
+  my ($decl, $scopes) = @_;
+
+  return 0 unless $decl->{what} eq main::DCL_DS;
+
+  return 1 if $decl->{qualified};
+
+  if (defined $decl->{likeds}) {
+    my $dschain = findlikeds($decl->{likeds}, @{$scopes});
+    return if grep({ $_->{qualified} } @{$dschain});
+  }
+
+  return 0;
+}
+
 # utility function to loop over each scope,
 # the provided subroutine will be called with the scopes.
 # i.e the first call will be for the global scope with $scope as the argument,
@@ -136,7 +161,7 @@ sub loopscopes
 }
 
 # returns a hash of all declarations in the current scope,
-# calls $callback is a previous declaration is already defined
+# calls $same is a previous declaration is already defined
 sub declhash
 {
   my ($decls, $scopes, %cfg) = @_;
@@ -145,37 +170,32 @@ sub declhash
   my $adddecl = sub {
     my ($name, $decl) = @_;
 
+    # skip
+    if ($cfg{add}) {
+      return unless $cfg{add}->($decl);
+    }
+
     my $prevdecl = $decls->{fc $name};
-    if (defined $prevdecl && defined $cfg{callback}) {
-      $cfg{callback}->($decl, $prevdecl);
+    if (defined $prevdecl && defined $cfg{same}) {
+      $cfg{same}->($decl, $prevdecl);
     }
     $decls->{fc $name} = $decl;
   };
 
   for my $decl (@{$scope->{declarations}}) {
-    if ($decl->{what} eq main::DCL_DS) {
-      my $qualified = $decl->{qualified};
-      if (!$qualified && defined $decl->{likeds}) {
-        my $dschain = findlikeds($decl->{likeds}, @{$scopes});
-        $qualified = 1 if grep({ $_->{qualified} } @{$dschain});
-      }
+    $adddecl->($decl->{name}, $decl);
 
-      if ($qualified) {
-        $adddecl->($decl->{name}, $decl);
-      }
-      else {
-        $adddecl->($decl->{name}, $decl) if ($cfg{addds});
+    # add fields from data structures that are not qualified
+    if ($decl->{what} eq main::DCL_DS) {
+      if (!main::isdsqual($decl, $scopes)) {
         if (defined $decl->{fields}) {
           $adddecl->($_->{name}, $_) for (@{$decl->{fields}});
         }
       }
     }
-    else {
-      $adddecl->($decl->{name}, $decl);
-    }
   }
 
-  if ($cfg{addproc} && defined $scope->{procedures}) {
+  if (defined $scope->{procedures}) {
     for my $procname (keys %{$scope->{procedures}}) {
       my $proc = $scope->{procedures}->{$procname};
       $adddecl->($procname, $proc);
@@ -361,6 +381,21 @@ sub error
     return $self;
   }
 
+  if ($what eq $RULES_UNUSED_PARAMETER) {
+    $adderr->($what, $LINT_WARN, sprintf("'%s' defined but not used", $data[0]->{name}), $data[0]);
+    return $self;
+  }
+
+  if ($what eq $RULES_UNUSED_PROCEDURE) {
+    $adderr->($what, $LINT_WARN, sprintf("'%s' defined but not used", $data[0]->{name}), $data[0]);
+    return $self;
+  }
+
+  if ($what eq $RULES_UNUSED_SUBROUTINE) {
+    $adderr->($what, $LINT_WARN, sprintf("'%s' defined but not used", $data[0]->{name}), $data[0]);
+    return $self;
+  }
+
   if ($what eq $RULES_UNUSED_VARIABLE) {
     $adderr->($what, $LINT_WARN, sprintf("'%s' defined but not used", $data[0]->{name}), $data[0]);
     return $self;
@@ -430,6 +465,18 @@ sub lint
     $self->lint_unreachable_code($scope);
   }
 
+  if ($self->{rules}->{$RULES_UNUSED_PARAMETER}) {
+    $self->lint_unused_parameter($scope);
+  }
+
+  if ($self->{rules}->{$RULES_UNUSED_PROCEDURE}) {
+    $self->lint_unused_procedure($scope);
+  }
+
+  if ($self->{rules}->{$RULES_UNUSED_SUBROUTINE}) {
+    $self->lint_unused_subroutine($scope);
+  }
+
   if ($self->{rules}->{$RULES_UNUSED_VARIABLE}) {
     $self->lint_unused_variable($scope);
   }
@@ -465,12 +512,12 @@ sub lint_global
 sub lint_shadow
 {
   my $self = shift;
-  my ($scope) = @_;
+  my ($gscope) = @_;
 
   my $gdecls = undef;
   my $decls = undef;
 
-  main::loopscopes($scope, sub {
+  main::loopscopes($gscope, sub {
     my @scopes = @_;
 
     if (defined $gdecls) {
@@ -481,11 +528,29 @@ sub lint_shadow
     }
 
     main::declhash($decls, \@scopes,
-      addproc => 1,
-      callback => sub {
+      add => sub {
+        my ($decl) = @_;
+
+        # don't add unqualified data structures
+        if ($decl->{what} eq main::DCL_DS && !main::isdsqual($decl, \@scopes)) {
+          return 0;
+        }
+
+        my %allowed = (
+          main::DCL_DS => 1,
+          main::DCL_S => 1,
+          main::DCL_SUBF => 1,
+          main::DCL_PARM => 1,
+          main::DCL_C => 1,
+          main::DCL_PR => 1,
+          main::DCL_PROC => 1,
+        );
+
+        return defined $allowed{$decl->{what}};
+      },
+      same => sub {
         my ($decl, $prevdecl) = @_;
 
-        # dcl-proc shadowing dcl-pr is ok.
         return if ($prevdecl->{what} eq main::DCL_PR && $decl->{what} eq main::DCL_PROC);
 
         $self->error($RULES_SHADOW, $decl, $prevdecl);
@@ -499,9 +564,9 @@ sub lint_shadow
 sub lint_qualified
 {
   my $self = shift;
-  my ($scope) = @_;
+  my ($gscope) = @_;
 
-  main::loopscopes($scope, sub {
+  main::loopscopes($gscope, sub {
     my @scopes = @_;
     my ($scope) = @scopes;
 
@@ -524,9 +589,9 @@ sub lint_qualified
 sub lint_uppercase_constant
 {
   my $self = shift;
-  my ($scope) = @_;
+  my ($gscope) = @_;
 
-  main::loopscopes($scope, sub {
+  main::loopscopes($gscope, sub {
       my ($scope) = @_;
 
       for (@{$scope->{declarations}}) {
@@ -544,12 +609,12 @@ sub lint_uppercase_constant
 sub lint_undefined_reference
 {
   my $self = shift;
-  my ($scope) = @_;
+  my ($gscope) = @_;
 
   my $gdecls = undef;
   my $decls = undef;
 
-  main::loopscopes($scope, sub {
+  main::loopscopes($gscope, sub {
     my @scopes = @_;
     my ($scope) = @scopes;
 
@@ -560,7 +625,23 @@ sub lint_undefined_reference
       $decls = $gdecls;
     }
 
-    main::declhash($decls, \@scopes, addproc => 1);
+    main::declhash($decls, \@scopes,
+      add => sub {
+        my ($decl) = @_;
+
+        my %allowed = (
+          main::DCL_DS => 1,
+          main::DCL_S => 1,
+          main::DCL_SUBF => 1,
+          main::DCL_PARM => 1,
+          main::DCL_C => 1,
+          main::DCL_PR => 1,
+          main::DCL_PROC => 1,
+        );
+
+        return defined $allowed{$decl->{what}};
+      }
+    );
 
     # check if a 'likeds' is found
     for (@{$scope->{declarations}}) {
@@ -609,9 +690,9 @@ sub lint_undefined_reference
 sub lint_subroutine
 {
   my $self = shift;
-  my ($scope) = @_;
+  my ($gscope) = @_;
 
-  main::loopscopes($scope, sub {
+  main::loopscopes($gscope, sub {
     my ($scope) = @_;
 
     for (keys %{$scope->{subroutines}}) {
@@ -626,9 +707,9 @@ sub lint_subroutine
 sub lint_uppercase_indicator
 {
   my $self = shift;
-  my ($scope) = @_;
+  my ($gscope) = @_;
 
-  main::loopscopes($scope, sub {
+  main::loopscopes($gscope, sub {
     my ($scope) = @_;
 
     for (@{$scope->{calculations}}) {
@@ -646,9 +727,9 @@ sub lint_uppercase_indicator
 sub lint_indicator
 {
   my $self = shift;
-  my ($scope) = @_;
+  my ($gscope) = @_;
 
-  main::loopscopes($scope, sub {
+  main::loopscopes($gscope, sub {
     my ($scope) = @_;
 
     for (@{$scope->{calculations}}) {
@@ -666,10 +747,111 @@ sub lint_indicator
   return $self;
 }
 
+sub lint_unused_parameter
+{
+  my $self = shift;
+  my ($gscope) = @_;
+
+  for my $procname (keys %{$gscope->{procedures}}) {
+    my $decls = {};
+    my $proc = $gscope->{procedures}->{$procname};
+
+    if (defined $proc->{parameters}) {
+      $decls->{fc $_->{name}} = $_ for (@{$proc->{parameters}});
+    }
+
+
+    for (@{$proc->{calculations}}) {
+      if ($_->{what} eq main::CALC_IDENT) {
+        if (defined $decls->{fc $_->{token}}) {
+          $decls->{fc $_->{token}} = 0; # marked deleted
+        }
+      }
+    }
+
+    for (keys %{$decls}) {
+      my $decl = $decls->{$_};
+      next if $decl == 0;
+      $self->error($RULES_UNUSED_PARAMETER, $decl);
+    }
+  };
+
+  return $self;
+}
+
+sub lint_unused_procedure
+{
+  my $self = shift;
+  my ($gscope) = @_;
+
+  my $procs = { %{$gscope->{procedures}} };
+
+  main::loopscopes($gscope, sub {
+    my @scopes = @_;
+    my ($scope) = @scopes;
+
+    for (@{$scope->{calculations}}) {
+      if ($_->{what} eq main::CALC_IDENT) {
+        if (defined $procs->{fc $_->{token}}) {
+          $procs->{fc $_->{token}} = 0; # marked deleted
+        }
+      }
+    }
+  });
+
+  for (keys %{$procs}) {
+    my $proc = $procs->{$_};
+    next if $proc == 0;
+    $self->error($RULES_UNUSED_PROCEDURE, $proc);
+  }
+
+  return $self;
+}
+
+sub lint_unused_subroutine
+{
+  my $self = shift;
+  my ($gscope) = @_;
+
+  main::loopscopes($gscope, sub {
+    my @scopes = @_;
+    my ($scope) = @scopes;
+
+    my $subrs = { %{$scope->{subroutines}} };
+
+    for (@{$scope->{calculations}}) {
+      if ($_->{what} eq main::CALC_EXSR) {
+        if (defined $subrs->{fc $_->{token}}) {
+          $subrs->{fc $_->{token}} = 0; # marked deleted
+        }
+      }
+    }
+
+    for my $subname (keys %{$scope->{subroutines}}) {
+      my $sub = $scope->{subroutines}->{$subname};
+      for (@{$sub->{calculations}}) {
+        if ($_->{what} eq main::CALC_EXSR) {
+          if (defined $subrs->{fc $_->{token}}) {
+            $subrs->{fc $_->{token}} = 0; # marked deleted
+          }
+        }
+      }
+    }
+
+    for (keys %{$subrs}) {
+      my $subr = $subrs->{$_};
+      next if $subr == 0;
+      $self->error($RULES_UNUSED_SUBROUTINE, $subr);
+    }
+  });
+
+  return $self;
+}
+
 sub lint_unused_variable
 {
   my $self = shift;
-  my ($scope) = @_;
+  my ($gscope) = @_;
 
   my $gdecls = undef;
   my $decls = undef;
@@ -680,19 +862,14 @@ sub lint_unused_variable
     for (keys %{$decls}) {
       my $decl = $decls->{$_};
 
-      if ($decl->{what} ne main::DCL_SUBF && $decl->{what} ne main::DCL_S) {
-        next;
-      }
+      # ignore parameters as they are checked with -Wunused-parameter
+      next if $decl == 0 || $decl->{what} eq main::DCL_PARM;
 
-      # skip 'dcl-subf' for now as we don't have control of qualified, and
-      # 'likeds' with qualified.
-      next if $decl->{what} eq main::DCL_SUBF;
-
-      $self->error($RULES_UNUSED_VARIABLE, $decl);
+      $self->error($RULES_UNUSED_VARIABLE, $decl) unless $decl == 0;
     }
   };
 
-  main::loopscopes($scope, sub {
+  main::loopscopes($gscope, sub {
     my @scopes = @_;
     my ($scope) = @scopes;
 
@@ -703,36 +880,47 @@ sub lint_unused_variable
       $decls = $gdecls;
     }
 
-    main::declhash($decls, \@scopes, addproc => 1);
+    main::declhash($decls, \@scopes,
+      add => sub {
+        my ($decl) = @_;
 
-    my $subrs = { %{$scope->{subroutines}} };
+        # don't add unqualified data structures
+        if ($decl->{what} eq main::DCL_DS && !main::isdsqual($decl, \@scopes)) {
+          return 0;
+        }
+
+        # skip 'dcl-subf' for now as we don't have control of qualified, and
+        # 'likeds' with qualified.
+        my %allowed = (
+          main::DCL_DS => 1,
+          main::DCL_PARM => 1,
+          main::DCL_S => 1
+        );
+
+        return defined $allowed{$decl->{what}};
+      }
+    );
 
     # check if a 'likeds' is found
     for (@{$scope->{declarations}}) {
       next unless $_->{what} eq main::DCL_DS;
       next unless defined $_->{likeds};
       if (defined $decls->{fc $_->{name}}) {
-        delete $decls->{fc $_->{name}};
+        $decls->{fc $_->{name}} = 0; # marked deleted
       }
       elsif (defined $gdecls->{fc $_->{name}}) {
-        delete $gdecls->{fc $_->{name}};
+        $gdecls->{fc $_->{name}} = 0; # marked deleted
       }
     }
 
     for (@{$scope->{calculations}}) {
-      if ($_->{what} eq main::CALC_EXSR) {
-        if (defined $subrs->{fc $_->{token}}) {
-          delete $subrs->{fc $_->{token}};
-        }
-      }
       if ($_->{what} eq main::CALC_IDENT) {
         if (defined $decls->{fc $_->{token}}) {
-          delete $decls->{fc $_->{token}};
+          $decls->{fc $_->{token}} = 0; # marked deleted
         }
         elsif (defined $gdecls->{fc $_->{token}}) {
-          delete $gdecls->{fc $_->{token}};
+          $gdecls->{fc $_->{token}} = 0; # marked deleted
         }
-        next;
       }
     }
 
@@ -740,12 +928,6 @@ sub lint_unused_variable
     if ($decls != $gdecls) {
       $checkdecls->($decls);
     }
-
-    for (keys %{$subrs}) {
-      my $subr = $subrs->{$_};
-      $self->error($RULES_UNUSED_VARIABLE, $subr);
-    }
-
   });
 
   $checkdecls->($gdecls);
@@ -756,14 +938,33 @@ sub lint_unused_variable
 sub lint_redefining_symbol
 {
   my $self = shift;
-  my ($scope) = @_;
+  my ($gscope) = @_;
 
 
-  main::loopscopes($scope, sub {
+  main::loopscopes($gscope, sub {
     my @scopes = @_;
     main::declhash({}, [$scopes[0]],
-      addproc => 1,
-      callback => sub {
+      add => sub {
+        my ($decl) = @_;
+
+        # don't add unqualified data structures
+        if ($decl->{what} eq main::DCL_DS && !main::isdsqual($decl, \@scopes)) {
+          return 0;
+        }
+
+        my %allowed = (
+          main::DCL_DS => 1,
+          main::DCL_S => 1,
+          main::DCL_SUBF => 1,
+          main::DCL_PARM => 1,
+          main::DCL_C => 1,
+          main::DCL_PR => 1,
+          main::DCL_PROC => 1
+        );
+
+        return defined $allowed{$decl->{what}};
+      },
+      same => sub {
         my ($decl, $prevdecl) = @_;
 
         # dcl-proc isn't redefining a dcl-pr
@@ -780,7 +981,7 @@ sub lint_redefining_symbol
 sub lint_unreachable_code
 {
   my $self = shift;
-  my ($scope) = @_;
+  my ($gscope) = @_;
 
   # here be dragons
   my $checkcalcs;
@@ -912,7 +1113,7 @@ sub lint_unreachable_code
     return undef;
   };
 
-  main::loopscopes($scope, sub {
+  main::loopscopes($gscope, sub {
     my @scopes = @_;
     my ($scope) = @scopes;
 
@@ -933,12 +1134,12 @@ sub lint_unreachable_code
 sub lint_same_casing
 {
   my $self = shift;
-  my ($scope) = @_;
+  my ($gscope) = @_;
 
   my $gdecls = undef;
   my $decls = undef;
 
-  main::loopscopes($scope, sub {
+  main::loopscopes($gscope, sub {
     my @scopes = @_;
     my ($scope) = @scopes;
 
@@ -949,7 +1150,23 @@ sub lint_same_casing
       $decls = $gdecls;
     }
 
-    main::declhash($decls, \@scopes, addproc => 1, addds => 1);
+    main::declhash($decls, \@scopes,
+      add => sub {
+        my ($decl) = @_;
+
+        my %allowed = (
+          main::DCL_DS => 1,
+          main::DCL_S => 1,
+          main::DCL_SUBF => 1,
+          main::DCL_PARM => 1,
+          main::DCL_C => 1,
+          main::DCL_PR => 1,
+          main::DCL_PROC => 1
+        );
+
+        return defined $allowed{$decl->{what}};
+      }
+    );
 
     # check if a 'likeds' is found
     for (@{$scope->{declarations}}) {
@@ -982,11 +1199,20 @@ sub lint_parameter_mismatch
   main::loopscopes($gscope, sub {
     my @scopes = @_;
 
-    my $decls = main::declhash({}, \@scopes);
+    my $decls = main::declhash({}, \@scopes,
+      add => sub {
+        my ($decl) = @_;
+
+        my %allowed = (
+          main::DCL_PR => 1
+        );
+
+        return defined $allowed{$decl->{what}};
+      }
+    );
 
     for (keys %{$decls}) {
       my $decl = $decls->{$_};
-      next unless $decl->{what} eq main::DCL_PR;
 
       my $proc = $gscope->{procedures}->{fc $decl->{name}};
       next unless defined $proc;
