@@ -85,7 +85,7 @@ sub rules_extra
   return { %{ $rules_extra } };
 }
 
-sub cmptype
+my $cmptype = sub
 {
   my ($a, $b) = @_;
 
@@ -93,9 +93,9 @@ sub cmptype
   $b = '' unless defined $b;
 
   return $a =~ s{ \s+ }{}xrg eq $b =~ s{ \s+ }{}xrg;
-}
+};
 
-sub cmpkws
+my $cmpkws = sub
 {
   my ($akws, $bkws) = @_;
 
@@ -111,9 +111,9 @@ sub cmpkws
 
   # same list
   return 1;
-}
+};
 
-sub sorterrors($$)
+my $sorterrors = sub($$)
 {
   my ($a, $b) = @_;
   my ($al, $bl) = ($a->{linksto}, $b->{linksto});
@@ -123,9 +123,32 @@ sub sorterrors($$)
   my $bno = defined $bl ? $bl->{lineno} + 0.1 : $b->{lineno};
 
   return $ano <=> $bno;
-}
+};
 
-sub isdsqual
+my $findlikeds;
+$findlikeds = sub
+{
+  my ($ref, @scopes) = @_;
+
+  for my $index (0..$#scopes) {
+    my $scope = $scopes[$index];
+    for (@{$scope->{declarations}}) {
+      next unless ($_->{what} eq main::DCL_DS);
+      next unless (fc $_->{name} eq fc $ref);
+
+      my $ret = [$_];
+      if (defined $_->{likeds}) {
+        push(@{$ret}, @{$findlikeds->($_->{likeds}, @scopes[$index..$#scopes])});
+      }
+
+      return $ret;
+    }
+  }
+
+  return [];
+};
+
+my $isdsqual = sub
 {
   my ($decl, $scopes) = @_;
 
@@ -134,18 +157,18 @@ sub isdsqual
   return 1 if $decl->{qualified};
 
   if (defined $decl->{likeds}) {
-    my $dschain = findlikeds($decl->{likeds}, @{$scopes});
+    my $dschain = $findlikeds->($decl->{likeds}, @{$scopes});
     return if grep({ $_->{qualified} } @{$dschain});
   }
 
   return 0;
-}
+};
 
 # utility function to loop over each scope,
 # the provided subroutine will be called with the scopes.
 # i.e the first call will be for the global scope with $scope as the argument,
 # the preceding calls with be with '($proc, $scope)' as arguments
-sub loopscopes
+my $loopscopes = sub
 {
   my ($scope, $sub) = @_;
 
@@ -157,11 +180,11 @@ sub loopscopes
   }
 
   return 1;
-}
+};
 
 # returns a hash of all declarations in the current scope,
 # calls $same is a previous declaration is already defined
-sub declhash
+my $declhash = sub
 {
   my ($decls, $scopes, %cfg) = @_;
   my ($scope) = @{$scopes};
@@ -186,7 +209,7 @@ sub declhash
 
     # add fields from data structures that are not qualified
     if ($decl->{what} eq main::DCL_DS) {
-      if (!main::isdsqual($decl, $scopes)) {
+      if (!$isdsqual->($decl, $scopes)) {
         if (defined $decl->{fields}) {
           $adddecl->($_->{name}, $_) for (@{$decl->{fields}});
         }
@@ -206,29 +229,7 @@ sub declhash
   }
 
   return $decls;
-}
-
-sub findlikeds
-{
-  my ($ref, @scopes) = @_;
-
-  for my $index (0..$#scopes) {
-    my $scope = $scopes[$index];
-    for (@{$scope->{declarations}}) {
-      next unless ($_->{what} eq main::DCL_DS);
-      next unless (fc $_->{name} eq fc $ref);
-
-      my $ret = [$_];
-      if (defined $_->{likeds}) {
-        push(@{$ret}, @{findlikeds($_->{likeds}, @scopes[$index..$#scopes])});
-      }
-
-      return $ret;
-    }
-  }
-
-  return [];
-}
+};
 
 package RPG::Linter;
 
@@ -488,7 +489,7 @@ sub lint
     $self->lint_uppercase_indicator($scope);
   }
 
-  my @errors = sort main::sorterrors @{$self->{linterrors}};
+  my @errors = sort $sorterrors @{$self->{linterrors}};
   $self->{linterrors} = \@errors;
   return $self->{linterrors};
 }
@@ -516,7 +517,7 @@ sub lint_shadow
   my $gdecls = undef;
   my $decls = undef;
 
-  main::loopscopes($gscope, sub {
+  $loopscopes->($gscope, sub {
     my @scopes = @_;
 
     if (defined $gdecls) {
@@ -526,12 +527,12 @@ sub lint_shadow
       $decls = $gdecls;
     }
 
-    main::declhash($decls, \@scopes,
+    $declhash->($decls, \@scopes,
       add => sub {
         my ($decl) = @_;
 
         # don't add unqualified data structures
-        if ($decl->{what} eq main::DCL_DS && !main::isdsqual($decl, \@scopes)) {
+        if ($decl->{what} eq main::DCL_DS && !$isdsqual->($decl, \@scopes)) {
           return 0;
         }
 
@@ -565,7 +566,7 @@ sub lint_qualified
   my $self = shift;
   my ($gscope) = @_;
 
-  main::loopscopes($gscope, sub {
+  $loopscopes->($gscope, sub {
     my @scopes = @_;
     my ($scope) = @scopes;
 
@@ -573,7 +574,7 @@ sub lint_qualified
       if ($_->{what} eq main::DCL_DS) {
         my $qualified = $_->{qualified};
         if (!$qualified && defined $_->{likeds}) {
-          my $dschain = main::findlikeds($_->{likeds}, @scopes);
+          my $dschain = $findlikeds->($_->{likeds}, @scopes);
           $qualified = 1 if grep({ $_->{qualified} } @{$dschain});
         }
 
@@ -590,7 +591,7 @@ sub lint_uppercase_constant
   my $self = shift;
   my ($gscope) = @_;
 
-  main::loopscopes($gscope, sub {
+  $loopscopes->($gscope, sub {
       my ($scope) = @_;
 
       for (@{$scope->{declarations}}) {
@@ -613,7 +614,7 @@ sub lint_undefined_reference
   my $gdecls = undef;
   my $decls = undef;
 
-  main::loopscopes($gscope, sub {
+  $loopscopes->($gscope, sub {
     my @scopes = @_;
     my ($scope) = @scopes;
 
@@ -624,7 +625,7 @@ sub lint_undefined_reference
       $decls = $gdecls;
     }
 
-    main::declhash($decls, \@scopes,
+    $declhash->($decls, \@scopes,
       add => sub {
         my ($decl) = @_;
 
@@ -666,7 +667,7 @@ sub lint_undefined_reference
       if ($_->{what} eq main::CALC_SUBF) {
         # check to see if the subfield is part of the data structure
         my $token = $_->{token};
-        my $dschain = main::findlikeds($_->{ds}, @scopes);
+        my $dschain = $findlikeds->($_->{ds}, @scopes);
         my $ds = $dschain->[-1];
 
         unless (grep { $_->{name} eq $token } @{$ds->{fields}}) {
@@ -691,7 +692,7 @@ sub lint_subroutine
   my $self = shift;
   my ($gscope) = @_;
 
-  main::loopscopes($gscope, sub {
+  $loopscopes->($gscope, sub {
     my ($scope) = @_;
 
     for (keys %{$scope->{subroutines}}) {
@@ -708,7 +709,7 @@ sub lint_uppercase_indicator
   my $self = shift;
   my ($gscope) = @_;
 
-  main::loopscopes($gscope, sub {
+  $loopscopes->($gscope, sub {
     my ($scope) = @_;
 
     for (@{$scope->{calculations}}) {
@@ -728,7 +729,7 @@ sub lint_indicator
   my $self = shift;
   my ($gscope) = @_;
 
-  main::loopscopes($gscope, sub {
+  $loopscopes->($gscope, sub {
     my ($scope) = @_;
 
     for (@{$scope->{calculations}}) {
@@ -785,7 +786,7 @@ sub lint_unused_procedure
 
   my $procs = { %{$gscope->{procedures}} };
 
-  main::loopscopes($gscope, sub {
+  $loopscopes->($gscope, sub {
     my @scopes = @_;
     my ($scope) = @scopes;
 
@@ -812,7 +813,7 @@ sub lint_unused_subroutine
   my $self = shift;
   my ($gscope) = @_;
 
-  main::loopscopes($gscope, sub {
+  $loopscopes->($gscope, sub {
     my @scopes = @_;
     my ($scope) = @scopes;
 
@@ -868,7 +869,7 @@ sub lint_unused_variable
     }
   };
 
-  main::loopscopes($gscope, sub {
+  $loopscopes->($gscope, sub {
     my @scopes = @_;
     my ($scope) = @scopes;
 
@@ -879,12 +880,12 @@ sub lint_unused_variable
       $decls = $gdecls;
     }
 
-    main::declhash($decls, \@scopes,
+    $declhash->($decls, \@scopes,
       add => sub {
         my ($decl) = @_;
 
         # don't add unqualified data structures
-        if ($decl->{what} eq main::DCL_DS && !main::isdsqual($decl, \@scopes)) {
+        if ($decl->{what} eq main::DCL_DS && !$isdsqual->($decl, \@scopes)) {
           return 0;
         }
 
@@ -940,14 +941,14 @@ sub lint_redefining_symbol
   my ($gscope) = @_;
 
 
-  main::loopscopes($gscope, sub {
+  $loopscopes->($gscope, sub {
     my @scopes = @_;
-    main::declhash({}, [$scopes[0]],
+    $declhash->({}, [$scopes[0]],
       add => sub {
         my ($decl) = @_;
 
         # don't add unqualified data structures
-        if ($decl->{what} eq main::DCL_DS && !main::isdsqual($decl, \@scopes)) {
+        if ($decl->{what} eq main::DCL_DS && !$isdsqual->($decl, \@scopes)) {
           return 0;
         }
 
@@ -1112,7 +1113,7 @@ sub lint_unreachable_code
     return undef;
   };
 
-  main::loopscopes($gscope, sub {
+  $loopscopes->($gscope, sub {
     my @scopes = @_;
     my ($scope) = @scopes;
 
@@ -1138,7 +1139,7 @@ sub lint_same_casing
   my $gdecls = undef;
   my $decls = undef;
 
-  main::loopscopes($gscope, sub {
+  $loopscopes->($gscope, sub {
     my @scopes = @_;
     my ($scope) = @scopes;
 
@@ -1149,7 +1150,7 @@ sub lint_same_casing
       $decls = $gdecls;
     }
 
-    main::declhash($decls, \@scopes,
+    $declhash->($decls, \@scopes,
       add => sub {
         my ($decl) = @_;
 
@@ -1195,10 +1196,10 @@ sub lint_parameter_mismatch
   my $self = shift;
   my ($gscope) = @_;
 
-  main::loopscopes($gscope, sub {
+  $loopscopes->($gscope, sub {
     my @scopes = @_;
 
-    my $decls = main::declhash({}, \@scopes,
+    my $decls = $declhash->({}, \@scopes,
       add => sub {
         my ($decl) = @_;
 
@@ -1216,7 +1217,7 @@ sub lint_parameter_mismatch
       my $proc = $gscope->{procedures}->{fc $decl->{name}};
       next unless defined $proc;
 
-      if (!main::cmptype($proc->{returns}, $decl->{returns})) {
+      if (!$cmptype->($proc->{returns}, $decl->{returns})) {
         $self->error($RULES_PARAMETER_MISMATCH, $proc, $decl);
         next;
       }
@@ -1227,11 +1228,11 @@ sub lint_parameter_mismatch
           $self->error($RULES_PARAMETER_MISMATCH, $proc, $decl);
           last;
         }
-        if (!main::cmptype($prparm->{type}, $procparm->{type})) {
+        if (!$cmptype->($prparm->{type}, $procparm->{type})) {
           $self->error($RULES_PARAMETER_MISMATCH, $proc, $decl);
           last;
         }
-        if (!main::cmpkws($prparm->{kws}, $procparm->{kws})) {
+        if (!$cmpkws->($prparm->{kws}, $procparm->{kws})) {
           $self->error($RULES_PARAMETER_MISMATCH, $proc, $decl);
           last;
         }

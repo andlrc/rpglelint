@@ -31,16 +31,16 @@ my $R_OPCODE = '(?: \b select \b | \b when \b | \b other \b | \b endsl \b'
 my $R_IND = '\* (?: ON | OFF | NULL | BLANK | BLANKS | OMIT'
           . '     | IN[0-0][0-9] | INH[1-9]  | INL[1-9] | INLR | INU[1-8] | INRT )';
 
-sub strjoin
+my $strjoin = sub
 {
   my ($str) = @_;
 
   $str =~ s{ - \n }{}xsmig;
 
   return $str;
-}
+};
 
-sub findfile
+my $findfile = sub
 {
   my ($file, @path) = @_;
 
@@ -65,7 +65,7 @@ sub findfile
   }
 
   return undef;
-}
+};
 
 package RPG::Parser;
 
@@ -225,7 +225,7 @@ sub parse
     if ($stmt->{code} =~ m{
         ^ \s* / \s* (?: copy | include ) \s+ (.*?) \s* $
       }xsmi) {
-      my $file = main::findfile($1, main::dirname($self->{file}), @{$self->{include}});
+      my $file = $findfile->($1, main::dirname($self->{file}), @{$self->{include}});
       if (defined $file) {
         my $parser = RPG::Parser->new;
         $parser->{include} = $self->{include};
@@ -433,7 +433,7 @@ sub parse
       if ($calc->{token} =~ m{ ^ $R_STR $ }xsmi) {
         $calc->{what} = main::CALC_STR;
         # join continuously character literals
-        $calc->{token} =~ s{ ' (.*?) ' }{"'" . main::strjoin($1) . "'"}xsmieg;
+        $calc->{token} =~ s{ ' (.*?) ' }{"'" . $strjoin->($1) . "'"}xsmieg;
       }
       elsif ($calc->{token} =~ m{ ^ $R_BIF $ }xsmi) {
         $calc->{what} = main::CALC_BIF;
