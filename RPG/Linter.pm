@@ -48,7 +48,6 @@ my $rules_default = {
 
 # turned on with -Wall
 my $rules_all = {
-  $RULES_GLOBAL => 0,
   $RULES_INDICATOR => 0,
   $RULES_PARAMETER_MISMATCH => 0,
   $RULES_QUALIFIED => 0,
