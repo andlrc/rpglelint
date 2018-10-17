@@ -800,7 +800,7 @@ sub lint_unused_procedure
 
   for (keys %{$procs}) {
     my $proc = $procs->{$_};
-    next if $proc == 0;
+    next if $proc == 0 || $proc->{exported};
     $self->error($RULES_UNUSED_PROCEDURE, $proc);
   }
 

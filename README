@@ -12,8 +12,6 @@ DESCRIPTION
        Mandatory  arguments  to  long  options are mandatory for short options
        too.
 
-       -Wall  will enable all warnings, see WARNINGS
-
        -I, --include=glob
               a file glob with directories that will be searched for  included
               files, see INCLUDE
@@ -56,6 +54,15 @@ WARNINGS
 
        -Wunreachable-code
               warn when code will never be reached
+
+       -Wunused-parameter
+              warn when a parameter is never referred
+
+       -Wunused-procedure
+              warn when a static procedure is never called
+
+       -Wunused-subroutine
+              warn when a subroutine is never executed
 
        -Wunused-variable
               warn when a declaration is never referred

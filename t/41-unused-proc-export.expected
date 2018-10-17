@@ -1,0 +1,3 @@
+t/41-unused-proc-export.rpgle:9:10: warning: 'c' defined but not used [-Wunused-procedure]
+ dcl-proc c;
+          ^

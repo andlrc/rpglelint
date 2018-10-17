@@ -11,10 +11,6 @@ will lint ILE/RPG programs
 .PP
 Mandatory arguments to long options are mandatory for short options too.
 .TP
-\fB\-Wall\fR
-will enable all warnings, see
-.B WARNINGS
-.TP
 \fB\-I\fR, \fB--include\fR=\fIglob\fR
 a file glob with directories that will be searched for included files, see
 .B INCLUDE
@@ -64,6 +60,15 @@ warn when a symbol is referred but not declared
 .TP
 \fB\-Wunreachable-code\fR
 warn when code will never be reached
+.TP
+\fB\-Wunused-parameter\fR
+warn when a parameter is never referred
+.TP
+\fB\-Wunused-procedure\fR
+warn when a static procedure is never called
+.TP
+\fB\-Wunused-subroutine\fR
+warn when a subroutine is never executed
 .TP
 \fB\-Wunused-variable\fR
 warn when a declaration is never referred
