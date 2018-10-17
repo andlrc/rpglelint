@@ -59,6 +59,10 @@ my $default_rules = {
 sub cmptype
 {
   my ($a, $b) = @_;
+
+  $a = '' unless defined $a;
+  $b = '' unless defined $b;
+
   return $a =~ s{ \s+ }{}xrg eq $b =~ s{ \s+ }{}xrg;
 }
 
