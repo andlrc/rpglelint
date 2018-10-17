@@ -60,15 +60,14 @@ sub findfile
 {
   my ($file, @path) = @_;
 
-  return $file if -f $file;
-
-  for my $prefix (@path) {
+  for my $prefix ("", @path) {
     my $f = $file;
     $f =~ s{ / }{.lib/}xsmig;
     $f =~ s{ , }{.file/}xsmig;
 
     for ($file, $f) {
-      my $slug = "$prefix/$_";
+      my $slug = $_;
+      $slug = "$prefix/$slug" if $prefix;
 
       return $slug     if -f $slug;
       return lc($slug) if -f lc($slug);
@@ -233,7 +232,7 @@ sub parse
       my $file = main::findfile($1, main::dirname($self->{file}), @{$self->{include}});
       if (defined $file) {
         my $parser = RPG::Parser->new;
-        $parser->{include} = $parser->{include};
+        $parser->{include} = $self->{include};
         my $s = $parser->parse($file);
         if (defined $s) {
           push(@{$self->{scope}->{declarations}}, @{$s->{declarations}});
