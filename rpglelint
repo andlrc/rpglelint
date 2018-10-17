@@ -1,10 +1,154 @@
 #!/usr/bin/env perl
 
+=head1 NAME
+
+rpglelint - Lint ILE/RPG Programs
+
+=head1 SYNOPSIS
+
+rpglelint [I<OPTIONS>]... [I<FILE>]...
+
+=head1 DESCRIPTION
+
+rpglelint will lint ILE/RPG programs
+
+Mandatory arguments to long options are mandatory for short options too.
+
+=head2 Options
+
+=over 4
+
+=item B<-I>, B<--include>=I<glob>
+
+a file glob with directories that will be searched for included files, see
+B<INCLUDE>
+
+=item B<-f>, B<--format>=I<format>
+
+output format, either B<unix>, or B<json>
+
+=item B<-W>I<name>
+
+set the warning I<name>, see B<WARNINGS> for a complete list of warnings
+
+show help and exit
+
+=item B<-h>, B<--help>
+
+show help and exit
+
+=back
+
+=head1 WARNINGS
+
+Enable a warning by using B<-W>I<name>, and disable it by using B<-Wno->I<name>
+
+Warnings enabled by B<-Wall>, and B<-Wextra> will be marked with B<[-Wall]> and
+B<[-Wextra]>.
+
+=over 4
+
+=item B<-Wglobal>
+
+warn about global declarations
+
+=item B<-Windicator> [-Wall]
+
+warn about usage of indicators such as B<*INLR> and B<*IN01>
+
+=item B<-Wparameter-mismatch> [-Wall]
+
+warn when a B<DCL-PROC> does not match the B<DCL-PR>
+
+=item B<-Wqualified> [-Wall]
+
+warn when data structures are not qualified
+
+=item B<-Wredefining-symbol> [-Wall]
+
+warn when a symbol is redifined
+
+=item B<-Wsame-casing> [-Wextra]
+
+warn when a declaration is referenced with another casing than it is declared
+
+=item B<-Wshadow>
+
+warn when a global declaration is shadowed by a local declaration
+
+=item B<-Wsubroutine>
+
+warn when subroutines are used
+
+=item B<-Wundefined-reference> [-Wall]
+
+warn when a symbol is referred but not declared
+
+=item B<-Wunreachable-code>
+
+warn when code will never be reached
+
+=item B<-Wunused-parameter> [-Wextra]
+
+warn when a parameter is never referred
+
+=item B<-Wunused-procedure> [-Wextra]
+
+warn when a static procedure is never called
+
+=item B<-Wunused-subroutine> [-Wextra]
+
+warn when a subroutine is never executed
+
+=item B<-Wunused-variable> [-Wextra]
+
+warn when a declaration is never referred
+
+=item B<-Wuppercase-constant> [-Wall]
+
+warn when a constant B<DCL-C> is not all uppercase
+
+=item B<-Wuppercase-indicator> [-Wall]
+
+warn when an indicator (including B<*ON>, B<*OFF>, B<*OMIT>, B<*BLANK>, and
+B<*BLANKS>) is not all uppercase
+
+=back
+
+=head1 ENVIRONMENT VARIABLES
+
+The following environment variables are read and used by rpglelint as described.
+
+=over 4
+
+=item B<RPGLELINT_INCLUDE>
+
+a file glob with directories that will be searched for included files, see
+B<INCLUDE>
+
+=back
+
+=head1 SEE ALSO
+
+B<rpglectags>(1)
+
+=head1 AUTHOR
+
+Andreas Louv <andreas@louv.dk>.
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
+
+=cut
+
 use strict;
 use warnings;
 use v5.16;
 
 use Getopt::Long qw{ GetOptionsFromArray :config no_ignore_case gnu_compat bundling };
+use Pod::Usage;
 
 use RPG::Parser;
 use RPG::Linter;
@@ -36,27 +180,10 @@ sub parseopts
       $linter->setoption($option);
     },
     'h|help' => sub {
-      print("Usage rpglelint [OPTIONS]... [FILES]...\n");
-      print("\n");
-      printf("The following warnings are supported:\n");
-      for my $rule (sort keys %{$rules_default}) {
-        my $act = '';
-        $act = 'A' if defined $rules_all->{$rule};
-        $act = 'E' if defined $rules_extra->{$rule};
-        $act = " [$act]" if $act;
-        printf("  -W%s%s\n", $rule, $act);
-      }
-      printf("\n");
-      printf("  -Wall           activates all warnings marked with [A]\n");
-      printf("  -Wextra         activates all warnings marked with [E]\n");
-      printf("  -I, --include   a file glob that will be used to resolve include directories\n");
-      printf("  -f, --format    either 'unix' or 'json'\n");
-      printf("  -h, --help      show this help and exit\n");
-      printf("\n");
-      printf("See rpglelint(1) for more information about warnings\n");
+      pod2usage( -verbose => 99, -sections => "SYNOPSIS|DESCRIPTION|WARNINGS" );
       exit 0;
     }
-  ) or exit 2;
+  ) or pod2usage( -verbose => 0, -exitval => 2 );
 }
 
 if (defined $ENV{RPGLELINT_INCLUDE}) {

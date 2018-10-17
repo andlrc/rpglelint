@@ -1,95 +1,101 @@
-RPGLELINT(1)                General Commands Manual               RPGLELINT(1)
-
 NAME
-       rpglelint - Lint ILE/RPG Programs
+    rpglelint - Lint ILE/RPG Programs
 
 SYNOPSIS
-       rpglelint [OPTIONS]... FILE...
+    rpglelint [*OPTIONS*]... [*FILE*]...
 
 DESCRIPTION
-       rpglelint will lint ILE/RPG programs
+    rpglelint will lint ILE/RPG programs
 
-       Mandatory  arguments  to  long  options are mandatory for short options
-       too.
+    Mandatory arguments to long options are mandatory for short options too.
 
-       -I, --include=glob
-              a file glob with directories that will be searched for  included
-              files, see INCLUDE
+  Options
+    -I, --include=*glob*
+        a file glob with directories that will be searched for included
+        files, see INCLUDE
 
-       -f, --format=format
-              output format, either unix, or json
+    -f, --format=*format*
+        output format, either unix, or json
 
-       -h, --help
-              show help and exit
+    -W*name*
+        set the warning *name*, see WARNINGS for a complete list of warnings
+
+        show help and exit
+
+    -h, --help
+        show help and exit
 
 WARNINGS
-       -Wglobal
-              warn about global declarations
+    Enable a warning by using -W*name*, and disable it by using -Wno-*name*
 
-       -Windicator
-              warn about usage of indicators such as *INLR and *IN01
+    Warnings enabled by -Wall, and -Wextra will be marked with [-Wall] and
+    [-Wextra].
 
-       -Wparameter-mismatch
-              warn when a DCL-PROC does not match the DCL-PR
+    -Wglobal
+        warn about global declarations
 
-       -Wqualified
-              warn when data structures are not qualified
+    -Windicator [-Wall]
+        warn about usage of indicators such as *INLR and *IN01
 
-       -Wredefining-symbol
-              warn when a symbol is redifined
+    -Wparameter-mismatch [-Wall]
+        warn when a DCL-PROC does not match the DCL-PR
 
-       -Wsame-casing
-              warn  when a declaration is referenced with another casing as it
-              is declared
+    -Wqualified [-Wall]
+        warn when data structures are not qualified
 
-       -Wshadow
-              warn when a global declaration is shadowed by a  local  declara‐
-              tion
+    -Wredefining-symbol [-Wall]
+        warn when a symbol is redifined
 
-       -Wsubroutine
-              warn when subroutines are used
+    -Wsame-casing [-Wextra]
+        warn when a declaration is referenced with another casing than it is
+        declared
 
-       -Wundefined-reference
-              warn when a symbol is referred but not declared
+    -Wshadow
+        warn when a global declaration is shadowed by a local declaration
 
-       -Wunreachable-code
-              warn when code will never be reached
+    -Wsubroutine
+        warn when subroutines are used
 
-       -Wunused-parameter
-              warn when a parameter is never referred
+    -Wundefined-reference [-Wall]
+        warn when a symbol is referred but not declared
 
-       -Wunused-procedure
-              warn when a static procedure is never called
+    -Wunreachable-code
+        warn when code will never be reached
 
-       -Wunused-subroutine
-              warn when a subroutine is never executed
+    -Wunused-parameter [-Wextra]
+        warn when a parameter is never referred
 
-       -Wunused-variable
-              warn when a declaration is never referred
+    -Wunused-procedure [-Wextra]
+        warn when a static procedure is never called
 
-       -Wuppercase-constant
-              warn when a constant dcl-c is not all uppercase
+    -Wunused-subroutine [-Wextra]
+        warn when a subroutine is never executed
 
-       -Wuppercase-indicator
-              warn  when an indicator (including *ON, *OFF, *OMIT, *BLANK, and
-              *BLANKS) is not all uppercase
+    -Wunused-variable [-Wextra]
+        warn when a declaration is never referred
+
+    -Wuppercase-constant [-Wall]
+        warn when a constant DCL-C is not all uppercase
+
+    -Wuppercase-indicator [-Wall]
+        warn when an indicator (including *ON, *OFF, *OMIT, *BLANK, and
+        *BLANKS) is not all uppercase
 
 ENVIRONMENT VARIABLES
-       The following environment variables are read and used by  rpglelint  as
-       described.
+    The following environment variables are read and used by rpglelint as
+    described.
 
-       RPGLELINT_INCLUDE
-              a  file glob with directories that will be searched for included
-              files, see INCLUDE
+    RPGLELINT_INCLUDE
+        a file glob with directories that will be searched for included
+        files, see INCLUDE
 
 SEE ALSO
-       rpglectags(1)
+    rpglectags(1)
 
 AUTHOR
-       Andreas Louv <andreas@louv.dk>.
+    Andreas Louv <andreas@louv.dk>.
 
 LICENSE
-       This program is free software; you can redistribute it and/or modify it
-       under the same terms as Perl itself.
+    This program is free software; you can redistribute it and/or modify it
+    under the same terms as Perl itself.
 
-                                  2018 Oct 15                     RPGLELINT(1)
