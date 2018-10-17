@@ -10,34 +10,72 @@ my $LINT_NOTE = "note";
 my $LINT_WARN = "warning";
 
 my $RULES_GLOBAL = "global";
-my $RULES_SHADOW = "shadow";
-my $RULES_QUALIFIED = "qualified";
-my $RULES_UPPERCASE_CONSTANT = "uppercase-constant";
-my $RULES_UNDEFINED_REFERENCE = "undefined-reference";
-my $RULES_SUBROUTINE = "subroutine";
-my $RULES_UPPERCASE_INDICATOR = "uppercase-indicator";
 my $RULES_INDICATOR = "indicator";
-my $RULES_UNUSED_VARIABLE = "unused-variable";
-my $RULES_REDEFINING_SYMBOL = "redefining-symbol";
-my $RULES_UNREACHABLE_CODE = "unreachable-code";
-my $RULES_SAME_CASING = "same-casing";
 my $RULES_PARAMETER_MISMATCH = "parameter-mismatch";
+my $RULES_QUALIFIED = "qualified";
+my $RULES_REDEFINING_SYMBOL = "redefining-symbol";
+my $RULES_SAME_CASING = "same-casing";
+my $RULES_SHADOW = "shadow";
+my $RULES_SUBROUTINE = "subroutine";
+my $RULES_UNDEFINED_REFERENCE = "undefined-reference";
+my $RULES_UNREACHABLE_CODE = "unreachable-code";
+my $RULES_UNUSED_VARIABLE = "unused-variable";
+my $RULES_UPPERCASE_CONSTANT = "uppercase-constant";
+my $RULES_UPPERCASE_INDICATOR = "uppercase-indicator";
 
-my $default_rules = {
+# list of all rules turned off
+my $rules_default = {
   $RULES_GLOBAL => 0,
-  $RULES_SHADOW => 0,
-  $RULES_QUALIFIED => 0,
-  $RULES_UPPERCASE_CONSTANT => 0,
-  $RULES_UNDEFINED_REFERENCE => 0,
-  $RULES_SUBROUTINE => 0,
-  $RULES_UPPERCASE_INDICATOR => 0,
   $RULES_INDICATOR => 0,
-  $RULES_UNUSED_VARIABLE => 0,
+  $RULES_PARAMETER_MISMATCH => 0,
+  $RULES_QUALIFIED => 0,
   $RULES_REDEFINING_SYMBOL => 0,
-  $RULES_UNREACHABLE_CODE => 0,
   $RULES_SAME_CASING => 0,
-  $RULES_PARAMETER_MISMATCH => 0
+  $RULES_SHADOW => 0,
+  $RULES_SUBROUTINE => 0,
+  $RULES_UNDEFINED_REFERENCE => 0,
+  $RULES_UNREACHABLE_CODE => 0,
+  $RULES_UNUSED_VARIABLE => 0,
+  $RULES_UPPERCASE_CONSTANT => 0,
+  $RULES_UPPERCASE_INDICATOR => 0,
 };
+
+# turned on with -Wall
+my $rules_all = {
+  $RULES_GLOBAL => 0,
+  $RULES_INDICATOR => 0,
+  $RULES_PARAMETER_MISMATCH => 0,
+  $RULES_QUALIFIED => 0,
+  $RULES_REDEFINING_SYMBOL => 0,
+  $RULES_SUBROUTINE => 0,
+  $RULES_UNDEFINED_REFERENCE => 0,
+  $RULES_UPPERCASE_CONSTANT => 0,
+  $RULES_UPPERCASE_INDICATOR => 0,
+};
+
+# turned on with -Wextra
+my $rules_extra = {
+  $RULES_SAME_CASING => 0,
+  $RULES_UNUSED_VARIABLE => 0,
+};
+
+# exported
+sub rules_default
+{
+  return { %{ $rules_default } };
+}
+
+# exported
+sub rules_all
+{
+  return { %{ $rules_all } };
+}
+
+# exported
+sub rules_extra
+{
+  return { %{ $rules_extra } };
+}
 
 sub cmptype
 {
@@ -261,64 +299,87 @@ sub error
     return $err;
   };
 
-  if ($what eq $RULES_UNDEFINED_REFERENCE) {
-    $adderr->($what, $LINT_WARN, sprintf("'%s' undeclared", $data[0]->{token}), $data[0]);
-  }
-  elsif ($what eq $RULES_GLOBAL) {
+  if ($what eq $RULES_GLOBAL) {
     $adderr->($what, $LINT_WARN,
               sprintf("global declaration '%s' is not allowed", $data[0]->{name}),
               $data[0]);
+    return $self;
   }
-  elsif ($what eq $RULES_QUALIFIED) {
-    $adderr->($what, $LINT_WARN,
-              sprintf("data structure '%s' needs to be qualified", $data[0]->{name}),
-              $data[0]);
-  }
-  elsif ($what eq $RULES_UPPERCASE_CONSTANT) {
-    $adderr->($what, $LINT_WARN,
-              sprintf("constant '%s' needs to be all uppercase", $data[0]->{name}),
-              $data[0]);
-  }
-  elsif ($what eq $RULES_SHADOW) {
-    my $error = $adderr->($what, $LINT_WARN, sprintf("declaration of '%s' shadows a global declaration", $data[0]->{name}), $data[0]);
-    my $note = $adderr->($what, $LINT_NOTE, "shadowed declaration is here", $data[1]);
-    $note->{linksto} = $error;
-  }
-  elsif ($what eq $RULES_SUBROUTINE) {
-    $adderr->($what, $LINT_WARN, sprintf("subroutine '%s' is not allowed", $data[0]->{name}), $data[0]);
-  }
-  elsif ($what eq $RULES_UPPERCASE_INDICATOR) {
-    $adderr->($what, $LINT_WARN, sprintf("indicator '%s' needs to be all uppercase", $data[0]->{token}), $data[0]);
-  }
-  elsif ($what eq $RULES_INDICATOR) {
+
+  if ($what eq $RULES_INDICATOR) {
     $adderr->($what, $LINT_WARN, sprintf("indicator '%s' is not allowed", $data[0]->{token}), $data[0]);
+    return $self;
   }
-  elsif ($what eq $RULES_UNUSED_VARIABLE) {
-    $adderr->($what, $LINT_WARN, sprintf("'%s' defined but not used", $data[0]->{name}), $data[0]);
-  }
-  elsif ($what eq $RULES_REDEFINING_SYMBOL) {
-    my $error = $adderr->($what, $LINT_WARN, sprintf("redefinition of '%s' as a different kind of symbol", $data[0]->{name}), $data[0]);
-    my $note = $adderr->($what, $LINT_NOTE, "previous definition is here", $data[1]);
-    $note->{linksto} = $error;
-  }
-  elsif ($what eq $RULES_UNREACHABLE_CODE) {
-    $adderr->($what, $LINT_WARN, "code will never be executed", $data[0]);
-  }
-  elsif ($what eq $RULES_SAME_CASING) {
-    my $error = $adderr->($what, $LINT_WARN, sprintf("'%s' is not in the same casing as '%s'", $data[0]->{token} || $data[0]->{likeds}, $data[1]->{name}), $data[0]);
-    my $note = $adderr->($what, $LINT_NOTE, "definition is here", $data[1]);
-    $note->{linksto} = $error;
-  }
-  elsif ($what eq $RULES_PARAMETER_MISMATCH) {
+
+  if ($what eq $RULES_PARAMETER_MISMATCH) {
     my $error = $adderr->($what, $LINT_WARN, sprintf("conflicting types for '%s'", $data[0]->{name}), $data[0]);
     my $note = $adderr->($what, $LINT_NOTE, sprintf("previous declaration of '%s' was here", $data[1]->{name}), $data[1]);
     $note->{linksto} = $error;
-  }
-  else {
-    die "unknown lint message";
+    return $self;
   }
 
-  return $self;
+  if ($what eq $RULES_QUALIFIED) {
+    $adderr->($what, $LINT_WARN,
+              sprintf("data structure '%s' needs to be qualified", $data[0]->{name}),
+              $data[0]);
+    return $self;
+  }
+
+  if ($what eq $RULES_REDEFINING_SYMBOL) {
+    my $error = $adderr->($what, $LINT_WARN, sprintf("redefinition of '%s' as a different kind of symbol", $data[0]->{name}), $data[0]);
+    my $note = $adderr->($what, $LINT_NOTE, "previous definition is here", $data[1]);
+    $note->{linksto} = $error;
+    return $self;
+  }
+
+  if ($what eq $RULES_SAME_CASING) {
+    my $error = $adderr->($what, $LINT_WARN, sprintf("'%s' is not in the same casing as '%s'", $data[0]->{token} || $data[0]->{likeds}, $data[1]->{name}), $data[0]);
+    my $note = $adderr->($what, $LINT_NOTE, "definition is here", $data[1]);
+    $note->{linksto} = $error;
+    return $self;
+  }
+
+  if ($what eq $RULES_SHADOW) {
+    my $error = $adderr->($what, $LINT_WARN, sprintf("declaration of '%s' shadows a global declaration", $data[0]->{name}), $data[0]);
+    my $note = $adderr->($what, $LINT_NOTE, "shadowed declaration is here", $data[1]);
+    $note->{linksto} = $error;
+    return $self;
+  }
+
+  if ($what eq $RULES_SUBROUTINE) {
+    $adderr->($what, $LINT_WARN, sprintf("subroutine '%s' is not allowed", $data[0]->{name}), $data[0]);
+    return $self;
+  }
+
+  if ($what eq $RULES_UNDEFINED_REFERENCE) {
+    $adderr->($what, $LINT_WARN, sprintf("'%s' undeclared", $data[0]->{token}), $data[0]);
+    return $self;
+  }
+
+  if ($what eq $RULES_UNREACHABLE_CODE) {
+    $adderr->($what, $LINT_WARN, "code will never be executed", $data[0]);
+    return $self;
+  }
+
+  if ($what eq $RULES_UNUSED_VARIABLE) {
+    $adderr->($what, $LINT_WARN, sprintf("'%s' defined but not used", $data[0]->{name}), $data[0]);
+    return $self;
+  }
+
+  if ($what eq $RULES_UPPERCASE_CONSTANT) {
+    $adderr->($what, $LINT_WARN,
+              sprintf("constant '%s' needs to be all uppercase", $data[0]->{name}),
+              $data[0]);
+    return $self;
+  }
+
+  if ($what eq $RULES_UPPERCASE_INDICATOR) {
+    $adderr->($what, $LINT_WARN, sprintf("indicator '%s' needs to be all uppercase", $data[0]->{token}), $data[0]);
+    return $self;
+  }
+
+
+  die "unknown lint message";
 }
 
 sub lint
@@ -333,52 +394,52 @@ sub lint
     $self->lint_global($scope);
   }
 
-  if ($self->{rules}->{$RULES_SHADOW}) {
-    $self->lint_shadow($scope);
+  if ($self->{rules}->{$RULES_INDICATOR}) {
+    $self->lint_indicator($scope);
+  }
+
+  if ($self->{rules}->{$RULES_PARAMETER_MISMATCH}) {
+    $self->lint_parameter_mismatch($scope);
   }
 
   if ($self->{rules}->{$RULES_QUALIFIED}) {
     $self->lint_qualified($scope);
   }
 
-  if ($self->{rules}->{$RULES_UPPERCASE_CONSTANT}) {
-    $self->lint_uppercase_constant($scope);
-  }
-
-  if ($self->{rules}->{$RULES_UNDEFINED_REFERENCE}) {
-    $self->lint_undefined_reference($scope);
-  }
-
-  if ($self->{rules}->{$RULES_SUBROUTINE}) {
-    $self->lint_subroutine($scope);
-  }
-
-  if ($self->{rules}->{$RULES_UPPERCASE_INDICATOR}) {
-    $self->lint_uppercase_indicator($scope);
-  }
-
-  if ($self->{rules}->{$RULES_INDICATOR}) {
-    $self->lint_indicator($scope);
-  }
-
-  if ($self->{rules}->{$RULES_UNUSED_VARIABLE}) {
-    $self->lint_unused_variable($scope);
-  }
-
   if ($self->{rules}->{$RULES_REDEFINING_SYMBOL}) {
     $self->lint_redefining_symbol($scope);
-  }
-
-  if ($self->{rules}->{$RULES_UNREACHABLE_CODE}) {
-    $self->lint_unreachable_code($scope);
   }
 
   if ($self->{rules}->{$RULES_SAME_CASING}) {
     $self->lint_same_casing($scope);
   }
 
-  if ($self->{rules}->{$RULES_PARAMETER_MISMATCH}) {
-    $self->lint_parameter_mismatch($scope);
+  if ($self->{rules}->{$RULES_SHADOW}) {
+    $self->lint_shadow($scope);
+  }
+
+  if ($self->{rules}->{$RULES_SUBROUTINE}) {
+    $self->lint_subroutine($scope);
+  }
+
+  if ($self->{rules}->{$RULES_UNDEFINED_REFERENCE}) {
+    $self->lint_undefined_reference($scope);
+  }
+
+  if ($self->{rules}->{$RULES_UNREACHABLE_CODE}) {
+    $self->lint_unreachable_code($scope);
+  }
+
+  if ($self->{rules}->{$RULES_UNUSED_VARIABLE}) {
+    $self->lint_unused_variable($scope);
+  }
+
+  if ($self->{rules}->{$RULES_UPPERCASE_CONSTANT}) {
+    $self->lint_uppercase_constant($scope);
+  }
+
+  if ($self->{rules}->{$RULES_UPPERCASE_INDICATOR}) {
+    $self->lint_uppercase_indicator($scope);
   }
 
   my @errors = sort main::sorterrors @{$self->{linterrors}};
@@ -960,7 +1021,7 @@ sub new
 {
   my $class = shift;
   my $self = {
-    rules => $default_rules
+    rules => { %{$rules_default} }
   };
   bless($self, $class);
 
@@ -973,21 +1034,27 @@ sub setoption
   my ($option) = @_;
 
   my $set = 1;
-  if ($option =~ m{ ^ no (.*) }xsmig) {
+  if ($option =~ m{ ^ no - (.*) }xsmig) {
     $option = $1;
     $set = 0;
   }
 
   if ($option eq "all") {
-    for (keys %{$self->{rules}}) {
-      $self->{rules}->{$_} = $set;
-    }
-  } else {
-    unless (grep { $_ eq $option } keys %{$self->{rules}}) {
-      die "Unknown warning '$option'";
-    }
-    $self->{rules}->{$option} = $set;
+      $self->{rules}->{$_} = $set for (keys %{$rules_all});
+      return $self;
   }
+
+  if ($option eq "extra") {
+      $self->{rules}->{$_} = $set for (keys %{$rules_all});
+      return $self;
+  }
+
+  if (grep { $_ eq $option } keys %{$rules_default}) {
+    $self->{rules}->{$option} = $set;
+    return $self;
+  }
+
+  die "unknown option '-W$option'";
 }
 
 1;

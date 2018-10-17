@@ -8,6 +8,7 @@ use Getopt::Long qw{ GetOptionsFromArray :config no_ignore_case gnu_compat bundl
 
 use RPG::Parser;
 use RPG::Linter;
+use Data::Dumper;
 
 my $parser = RPG::Parser->new;
 my $linter = RPG::Linter->new;
@@ -18,6 +19,10 @@ my $format = ''; # default is unix
 sub parseopts
 {
   my ($opts) = @_;
+
+  my $rules_default = rules_default();
+  my $rules_all = rules_all();
+  my $rules_extra = rules_extra();
 
   GetOptionsFromArray($opts,
     'f|format=s' => \$format,
@@ -34,13 +39,21 @@ sub parseopts
       print("Usage rpglelint [OPTIONS]... [FILES]...\n");
       print("\n");
       printf("The following warnings are supported:\n");
-      printf("  -W%s,\n", $_) for sort keys %{$linter->{rules}};
+      for my $rule (sort keys %{$rules_default}) {
+        my $act = '';
+        $act = 'A' if defined $rules_all->{$rule};
+        $act = 'E' if defined $rules_extra->{$rule};
+        $act = " [$act]" if $act;
+        printf("  -W%s%s\n", $rule, $act);
+      }
       printf("\n");
-      printf("  -Wall   enables all warnings\n");
-      printf("\n");
+      printf("  -Wall           activates all warnings marked with [A]\n");
+      printf("  -Wextra         activates all warnings marked with [E]\n");
       printf("  -I, --include   a file glob that will be used to resolve include directories\n");
       printf("  -f, --format    either 'unix' or 'json'\n");
       printf("  -h, --help      show this help and exit\n");
+      printf("\n");
+      printf("See rpglelint(1) for more information about warnings\n");
       exit 0;
     }
   ) or exit 2;
