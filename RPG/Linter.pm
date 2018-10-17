@@ -939,7 +939,10 @@ sub lint_parameter_mismatch
     for (keys %{$decls}) {
       my $decl = $decls->{$_};
       next unless $decl->{what} eq $DCL_PR;
+
       my $proc = $gscope->{procedures}->{fc $decl->{name}};
+      next unless defined $proc;
+
       if (!main::cmptype($proc->{returns}, $decl->{returns})) {
         $self->error($RULES_PARAMETER_MISMATCH, $proc, $decl);
         next;
