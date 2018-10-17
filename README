@@ -31,6 +31,9 @@ WARNINGS
        -Windicator
               warn about usage of indicators such as *INLR and *IN01
 
+       -Wparameter-mismatch
+              warn when a DCL-PROC does not match the DCL-PR
+
        -Wqualified
               warn when data structures are not qualified
 
@@ -64,6 +67,7 @@ WARNINGS
               warn  when an indicator (including *ON, *OFF, *OMIT, *BLANK, and
               *BLANKS) is not all uppercase
 
+ENVIRONMENT VARIABLES
        The following environment variables are read and used by  rpglelint  as
        described.
 
