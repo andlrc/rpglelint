@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use v5.16;
 use RPG::Statement;
+use File::Basename;
 
 use Exporter;
 
@@ -61,21 +62,23 @@ sub findfile
 
   return $file if -f $file;
 
-  my $f = $file;
-  $f =~ s{ / }{.lib/}xsmig;
-  $f =~ s{ , }{.file/}xsmig;
+  for my $prefix (@path) {
+    my $f = $file;
+    $f =~ s{ / }{.lib/}xsmig;
+    $f =~ s{ , }{.file/}xsmig;
 
-  for my $lib (@path) {
-    my $slug = "$lib/$f";
+    for ($file, $f) {
+      my $slug = "$prefix/$_";
 
-    return $slug     if -f $slug;
-    return lc($slug) if -f lc($slug);
+      return $slug     if -f $slug;
+      return lc($slug) if -f lc($slug);
 
-    return $slug . ".rpgleinc"     if -f $slug . ".rpgleinc";
-    return lc($slug . ".rpgleinc") if -f lc($slug . ".rpgleinc");
+      return $slug . ".rpgleinc"     if -f $slug . ".rpgleinc";
+      return lc($slug . ".rpgleinc") if -f lc($slug . ".rpgleinc");
 
-    return $slug . ".mbr"     if -f $slug . ".mbr";
-    return lc($slug . ".mbr") if -f lc($slug . ".mbr");
+      return $slug . ".mbr"     if -f $slug . ".mbr";
+      return lc($slug . ".mbr") if -f lc($slug . ".mbr");
+    }
   }
 
   # fallback, return input
@@ -230,7 +233,7 @@ sub parse
       my $parser = RPG::Parser->new;
       $parser->{include} = $parser->{include};
 
-      my $file = main::findfile($1, @{$self->{include}});
+      my $file = main::findfile($1, main::dirname($self->{file}), @{$self->{include}});
       my $s = $parser->parse($file);
       if (defined $s) {
         push(@{$self->{scope}->{declarations}}, @{$s->{declarations}});
