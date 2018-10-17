@@ -2,26 +2,10 @@ use strict;
 use warnings;
 use v5.16;
 use RPG::Statement;
+use RPG::Constant qw{ :DCL :CALC };
 use File::Basename;
 
 use Exporter;
-
-my $DCL_PROC = 'dcl-proc';
-my $DCL_PR = 'dcl-pr';
-my $DCL_S = 'dcl-s';
-my $DCL_C = 'dcl-c';
-my $DCL_DS = 'dcl-ds';
-my $DCL_SUBF = 'dcl-subf';
-
-my $CALC_STR = 'str';
-my $CALC_BIF = 'bif';
-my $CALC_IDENT = 'ident';
-my $CALC_SUBF = 'subf';
-my $CALC_NUM = 'num';
-my $CALC_OPCODE = 'opcode';
-my $CALC_EXSR = 'exsr';
-my $CALC_IND = 'ind';
-my $CALC_OP = 'op';
 
 my $R_IDENT = '(?! \d ) \w+';
 my $R_TYPE = '  (?: date | ind | object | pointer | time | timestamp | value )'
@@ -141,7 +125,7 @@ sub subf
     $stmt->calckw($1);
 
     push(@params, {
-        what => $DCL_SUBF,
+        what => main::DCL_SUBF,
         file => $stmt->{file},
         stmt => $stmt,
         name => $1,
@@ -182,13 +166,24 @@ sub warn
   my ($msg) = @_;
   my ($package, $filename, $line) = caller;
 
-  printf(STDERR "Parse Warning:\n"
-              . ">> Message:      %s\n"
-              . ">> Current File: %s at line %d\n"
-              . ">> Source File:  %s at line %d\n",
-              $msg,
-              $self->{file}, $self->{stmt}->{startlineno},
-              $filename, $line);
+  if (defined $self->{stmt}) {
+    printf(STDERR "Parse Warning:\n"
+                . ">> Message:      %s\n"
+                . ">> Current File: %s at line %d\n"
+                . ">> Source File:  %s at line %d\n",
+                $msg,
+                $self->{file}, $self->{stmt}->{startlineno},
+                $filename, $line);
+  }
+  else {
+    printf(STDERR "Parse Warning:\n"
+                . ">> Message:      %s\n"
+                . ">> Current File: %s\n"
+                . ">> Source File:  %s at line %d\n",
+                $msg,
+                $self->{file},
+                $filename, $line);
+  }
 }
 
 sub getstmt
@@ -260,7 +255,7 @@ sub parse
       my $proc = {
         name => $1,
         file => $stmt->{file},
-        what => $DCL_PROC,
+        what => main::DCL_PROC,
         stmt => $stmt,
         line => $stmt->{line},
         lineno => $stmt->{lineno},
@@ -285,7 +280,7 @@ sub parse
     if ($stmt->{code} =~ m{
         ^ \s* dcl-pr \s+ ($R_IDENT) (?: \s+ ($R_TYPE) )?
       }xsmi) {
-      my $decl = $self->adddecl($DCL_PR, {
+      my $decl = $self->adddecl(main::DCL_PR, {
         name => $1,
         returns => defined $2 ? $2 : ''
       });
@@ -318,7 +313,7 @@ sub parse
       }xsmi) {
 
       my @kws = split(/\s+/, defined $3 ? $3 : '');
-      $self->adddecl($DCL_S, {
+      $self->adddecl(main::DCL_S, {
         name => $1,
         type => defined $2 ? $2 : '',
         kws => \@kws
@@ -331,7 +326,7 @@ sub parse
     if ($stmt->{code} =~ m{
         ^ \s* dcl-c \s+ ($R_IDENT) (?: \s+ const \s* \( (.*?) \) | (.*?) ) ;
       }xsmi) {
-      $self->adddecl($DCL_C, {
+      $self->adddecl(main::DCL_C, {
         name => $1,
         value => ($2 or $3)
       });
@@ -345,7 +340,7 @@ sub parse
       }xsmi) {
       my @kws = split(/\s+/, defined $2 ? $2 : '');
 
-      my $decl = $self->adddecl($DCL_DS, {
+      my $decl = $self->adddecl(main::DCL_DS, {
         name => $1,
         likeds => undef,
         qualified => 0,
@@ -401,7 +396,7 @@ sub parse
     if ($stmt->{code} =~ m{ ^ \s* exsr \s+ ($R_IDENT) \s* ; }xsmi) {
       $stmt->calckw($1);
       push(@{$self->{scope}->{calculations}}, {
-        what => $CALC_EXSR,
+        what => main::CALC_EXSR,
         file => $self->{file},
         name => $1,
         token => $1, # TODO: Should be removed?
@@ -435,33 +430,33 @@ sub parse
       $calc->{line} .= ${^POSTMATCH} =~ s{ \n .* }{}xsmir . $/;
 
       if ($calc->{token} =~ m{ ^ $R_STR $ }xsmi) {
-        $calc->{what} = $CALC_STR;
+        $calc->{what} = main::CALC_STR;
         # join continuously character literals
         $calc->{token} =~ s{ ' (.*?) ' }{"'" . main::strjoin($1) . "'"}xsmieg;
       }
       elsif ($calc->{token} =~ m{ ^ $R_BIF $ }xsmi) {
-        $calc->{what} = $CALC_BIF;
+        $calc->{what} = main::CALC_BIF;
       }
       elsif ($calc->{token} =~ m{ ^ $R_SUBF $ }xsmi) {
-        $calc->{what} = $CALC_SUBF;
+        $calc->{what} = main::CALC_SUBF;
         $calc->{column}++;
         $calc->{token} = substr($calc->{token}, 1);
         $calc->{ds} = $self->{scope}->{calculations}[-1]->{token};
       }
       elsif ($calc->{token} =~ m{ ^ $R_OPCODE $ }xsmi) {
-        $calc->{what} = $CALC_OPCODE;
+        $calc->{what} = main::CALC_OPCODE;
       }
       elsif ($calc->{token} =~ m{ ^ $R_IND $ }xsmi) {
-        $calc->{what} = $CALC_IND;
+        $calc->{what} = main::CALC_IND;
       }
       elsif ($calc->{token} =~ m{ ^ $R_NUM $ }xsmi) {
-        $calc->{what} = $CALC_NUM;
+        $calc->{what} = main::CALC_NUM;
       }
       elsif ($calc->{token} =~ m{ ^ $R_OP $ }xsmi) {
-        $calc->{what} = $CALC_OP;
+        $calc->{what} = main::CALC_OP;
       }
       elsif ($calc->{token} =~ m{ ^ $R_IDENT $ }xsmi) {
-        $calc->{what} = $CALC_IDENT;
+        $calc->{what} = main::CALC_IDENT;
       }
 
       push(@{$self->{scope}->{calculations}}, $calc);

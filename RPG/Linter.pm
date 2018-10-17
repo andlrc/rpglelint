@@ -1,27 +1,10 @@
 use strict;
 use warnings;
 use v5.16;
-
-use Data::Dumper;
-use Exporter;
+use RPG::Constant qw{ :DCL :CALC :COLOR };
 use JSON;
 
-my $DCL_PROC = 'dcl-proc';
-my $DCL_PR = 'dcl-pr';
-my $DCL_S = 'dcl-s';
-my $DCL_C = 'dcl-c';
-my $DCL_DS = 'dcl-ds';
-my $DCL_SUBF = 'dcl-subf';
-
-my $CALC_IDENT = 'ident';
-my $CALC_SUBF = 'subf';
-my $CALC_IND = 'ind';
-my $CALC_OPCODE = 'opcode';
-my $CALC_EXSR = 'exsr';
-
-my $C_WARN = -t 1 ? "\033[1;35m" : '';
-my $C_NOTE = -t 1 ? "\033[1;36m" : '';
-my $C_RESET = -t 1 ? "\033[0m" : '';
+use Exporter;
 
 my $LINT_NOTE = "note";
 my $LINT_WARN = "warning";
@@ -132,7 +115,7 @@ sub declhash
   };
 
   for my $decl (@{$scope->{declarations}}) {
-    if ($decl->{what} eq $DCL_DS) {
+    if ($decl->{what} eq main::DCL_DS) {
       my $qualified = $decl->{qualified};
       if (!$qualified && defined $decl->{likeds}) {
         my $dschain = findlikeds($decl->{likeds}, @{$scopes});
@@ -175,7 +158,7 @@ sub findlikeds
   for my $index (0..$#scopes) {
     my $scope = $scopes[$index];
     for (@{$scope->{declarations}}) {
-      next unless ($_->{what} eq $DCL_DS);
+      next unless ($_->{what} eq main::DCL_DS);
       next unless (fc $_->{name} eq fc $ref);
 
       my $ret = [$_];
@@ -199,16 +182,17 @@ sub print_unix
 
   for my $error (@{$errors}) {
     if ($error->{type} eq $LINT_WARN) {
-      printf("%s:%d:%d: ${C_WARN}warning:$C_RESET %s [$C_WARN-W%s$C_RESET]\n",
-             $error->{file}, $error->{lineno}, $error->{column}, $error->{msg},
-             $error->{what});
-      $self->print_unix_code($C_WARN, $error);
+      printf("%s:%d:%d: %swarning:%s %s [%s-W%s%s]\n",
+             $error->{file}, $error->{lineno}, $error->{column},
+             main::COLOR_WARN, main::COLOR_RESET, $error->{msg},
+             main::COLOR_WARN, $error->{what}, main::COLOR_RESET);
+      $self->print_unix_code(main::COLOR_WARN, $error);
     }
     elsif ($error->{type} eq $LINT_NOTE) {
-      printf("%s:%d:%d: ${C_NOTE}note:$C_RESET %s\n",
+      printf("%s:%d:%d: %snote:%s %s\n",
              $error->{file}, $error->{lineno}, $error->{column},
-             $error->{msg});
-      $self->print_unix_code($C_NOTE, $error);
+             main::COLOR_NOTE, main::COLOR_RESET, $error->{msg});
+      $self->print_unix_code(main::COLOR_NOTE, $error);
     }
   }
 
@@ -226,10 +210,10 @@ sub print_unix_code
   # (.\w*) is used to support highlighting '*ON' and '%subst'
   $hltext =~ s{ ^ (.{$pre}) (.\w*) }{
     my $ref = $2;
-    ($1 =~ s/\t/ /gr) . $color . $ref . $C_RESET
+    ($1 =~ s/\t/ /gr) . $color . $ref . main::COLOR_RESET
   }xsmie;
   printf(" %s", $hltext);
-  printf("%s${color}^$C_RESET\n", " " x $error->{column});
+  printf("%s%s^%s\n", " " x $error->{column}, $color, main::COLOR_RESET);
 
   return $self;
 }
@@ -409,7 +393,7 @@ sub lint_global
 
   for (@{$scope->{declarations}}) {
     # data structure templates are allowed to be global
-    if ($_->{what} eq $DCL_S || $_->{what} eq $DCL_DS && !$_->{template}) {
+    if ($_->{what} eq main::DCL_S || $_->{what} eq main::DCL_DS && !$_->{template}) {
       $self->error($RULES_GLOBAL, $_);
     }
   }
@@ -441,7 +425,7 @@ sub lint_shadow
         my ($decl, $prevdecl) = @_;
 
         # dcl-proc shadowing dcl-pr is ok.
-        return if ($prevdecl->{what} eq $DCL_PR && $decl->{what} eq $DCL_PROC);
+        return if ($prevdecl->{what} eq main::DCL_PR && $decl->{what} eq main::DCL_PROC);
 
         $self->error($RULES_SHADOW, $decl, $prevdecl);
       }
@@ -461,7 +445,7 @@ sub lint_qualified
     my ($scope) = @scopes;
 
     for (@{$scope->{declarations}}) {
-      if ($_->{what} eq $DCL_DS) {
+      if ($_->{what} eq main::DCL_DS) {
         my $qualified = $_->{qualified};
         if (!$qualified && defined $_->{likeds}) {
           my $dschain = main::findlikeds($_->{likeds}, @scopes);
@@ -485,7 +469,7 @@ sub lint_uppercase_constant
       my ($scope) = @_;
 
       for (@{$scope->{declarations}}) {
-        if ($_->{what} eq $DCL_C) {
+        if ($_->{what} eq main::DCL_C) {
           next if uc $_->{name} eq $_->{name};
 
           $self->error($RULES_UPPERCASE_CONSTANT, $_);
@@ -519,7 +503,7 @@ sub lint_undefined_reference
 
     # check if a 'likeds' is found
     for (@{$scope->{declarations}}) {
-      next unless $_->{what} eq $DCL_DS;
+      next unless $_->{what} eq main::DCL_DS;
       next unless defined $_->{likeds};
       $self->error($RULES_UNDEFINED_REFERENCE, {
         file => $_->{file},
@@ -531,14 +515,14 @@ sub lint_undefined_reference
     }
 
     for (@{$scope->{calculations}}) {
-      if ($_->{what} eq $CALC_IDENT) {
+      if ($_->{what} eq main::CALC_IDENT) {
         unless (defined $decls->{fc $_->{token}}) {
           $self->error($RULES_UNDEFINED_REFERENCE, $_);
         }
         next;
       }
 
-      if ($_->{what} eq $CALC_SUBF) {
+      if ($_->{what} eq main::CALC_SUBF) {
         # check to see if the subfield is part of the data structure
         my $token = $_->{token};
         my $dschain = main::findlikeds($_->{ds}, @scopes);
@@ -550,7 +534,7 @@ sub lint_undefined_reference
         next;
       }
 
-      if ($_->{what} eq $CALC_EXSR) {
+      if ($_->{what} eq main::CALC_EXSR) {
         unless (defined $scope->{subroutines}->{fc $_->{name}}) {
           $self->error($RULES_UNDEFINED_REFERENCE, $_);
         }
@@ -587,7 +571,7 @@ sub lint_uppercase_indicator
     my ($scope) = @_;
 
     for (@{$scope->{calculations}}) {
-      if ($_->{what} eq $CALC_IND) {
+      if ($_->{what} eq main::CALC_IND) {
         next if uc $_->{token} eq $_->{token};
 
         $self->error($RULES_UPPERCASE_INDICATOR, $_);
@@ -607,7 +591,7 @@ sub lint_indicator
     my ($scope) = @_;
 
     for (@{$scope->{calculations}}) {
-      if ($_->{what} eq $CALC_IND) {
+      if ($_->{what} eq main::CALC_IND) {
         # Allow *ON, *OFF, *NULL, *BLANK, *BLANKS, and *OMIT
         next if $_->{token} =~ m{
           \* (?: ON | OFF | NULL | BLANK | BLANKS | OMIT )
@@ -634,11 +618,14 @@ sub lint_unused_variable
 
     for (keys %{$decls}) {
       my $decl = $decls->{$_};
-      next unless $decl->{what} =~ m{ ^ (?: $DCL_SUBF | $DCL_S ) $ }xsmi;
+
+      if ($decl->{what} ne main::DCL_SUBF && $decl->{what} ne main::DCL_S) {
+        next;
+      }
 
       # skip 'dcl-subf' for now as we don't have control of qualified, and
       # 'likeds' with qualified.
-      next if $decl->{what} eq $DCL_SUBF;
+      next if $decl->{what} eq main::DCL_SUBF;
 
       $self->error($RULES_UNUSED_VARIABLE, $decl);
     }
@@ -661,7 +648,7 @@ sub lint_unused_variable
 
     # check if a 'likeds' is found
     for (@{$scope->{declarations}}) {
-      next unless $_->{what} eq $DCL_DS;
+      next unless $_->{what} eq main::DCL_DS;
       next unless defined $_->{likeds};
       if (defined $decls->{fc $_->{name}}) {
         delete $decls->{fc $_->{name}};
@@ -672,12 +659,12 @@ sub lint_unused_variable
     }
 
     for (@{$scope->{calculations}}) {
-      if ($_->{what} eq $CALC_EXSR) {
+      if ($_->{what} eq main::CALC_EXSR) {
         if (defined $subrs->{fc $_->{token}}) {
           delete $subrs->{fc $_->{token}};
         }
       }
-      if ($_->{what} eq $CALC_IDENT) {
+      if ($_->{what} eq main::CALC_IDENT) {
         if (defined $decls->{fc $_->{token}}) {
           delete $decls->{fc $_->{token}};
         }
@@ -719,7 +706,7 @@ sub lint_redefining_symbol
         my ($decl, $prevdecl) = @_;
 
         # dcl-proc isn't redefining a dcl-pr
-        return if ($prevdecl->{what} eq $DCL_PR && $decl->{what} eq $DCL_PROC);
+        return if ($prevdecl->{what} eq main::DCL_PR && $decl->{what} eq main::DCL_PROC);
 
         $self->error($RULES_REDEFINING_SYMBOL, $decl, $prevdecl);
       }
@@ -809,7 +796,7 @@ sub lint_unreachable_code
 
     return undef unless defined $calc;
 
-    if ($calc->{what} =~ $CALC_EXSR) {
+    if ($calc->{what} eq main::CALC_EXSR) {
       my $unreached = $exsrstmt->($scope, $calc, $calcs, $preturned);
       return $unreached if defined $unreached;
 
@@ -825,7 +812,7 @@ sub lint_unreachable_code
       return undef;
     }
 
-    return undef if $calc->{what} ne $CALC_OPCODE;
+    return undef if $calc->{what} ne main::CALC_OPCODE;
 
     if ($calc->{token} =~ m{ ^ if $ }xsmi) {
       return $branchstmt->($scope, $calcs, 'endif', ['else', 'elseif'],
@@ -905,7 +892,7 @@ sub lint_same_casing
 
     # check if a 'likeds' is found
     for (@{$scope->{declarations}}) {
-      next unless $_->{what} eq $DCL_DS;
+      next unless $_->{what} eq main::DCL_DS;
       next unless defined $_->{likeds};
       my $decl = $decls->{fc $_->{likeds}};
       if (defined $decl && $decl->{name} ne $_->{likeds}) {
@@ -914,7 +901,7 @@ sub lint_same_casing
     }
 
     for (@{$scope->{calculations}}) {
-      if ($_->{what} eq $CALC_IDENT) {
+      if ($_->{what} eq main::CALC_IDENT) {
         my $decl = $decls->{fc $_->{token}};
         if (defined $decl && $decl->{name} ne $_->{token}) {
           $self->error($RULES_SAME_CASING, $_, $decl);
@@ -938,7 +925,7 @@ sub lint_parameter_mismatch
 
     for (keys %{$decls}) {
       my $decl = $decls->{$_};
-      next unless $decl->{what} eq $DCL_PR;
+      next unless $decl->{what} eq main::DCL_PR;
 
       my $proc = $gscope->{procedures}->{fc $decl->{name}};
       next unless defined $proc;
