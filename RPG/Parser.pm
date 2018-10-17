@@ -81,8 +81,7 @@ sub findfile
     }
   }
 
-  # fallback, return input
-  return $file;
+  return undef;
 }
 
 package RPG::Parser;
@@ -182,14 +181,15 @@ sub warn
 {
   my $self = shift;
   my ($msg) = @_;
+  my ($package, $filename, $line) = caller;
 
-  printf(STDERR "'%s': while parsing the file '%s'", $msg, $self->{file});
-  if (defined $.) {
-    printf(STDERR "at line %d\n", $.);
-  }
-  else {
-    printf(STDERR "\n");
-  }
+  printf(STDERR "Parse Warning:\n"
+              . ">> Message:      %s\n"
+              . ">> Current File: %s at line %d\n"
+              . ">> Source File:  %s at line %d\n",
+              $msg,
+              $self->{file}, $self->{stmt}->{startlineno},
+              $filename, $line);
 }
 
 sub getstmt
@@ -230,13 +230,16 @@ sub parse
     if ($stmt->{code} =~ m{
         ^ \s* / \s* (?: copy | include ) \s+ (.*?) \s* $
       }xsmi) {
-      my $parser = RPG::Parser->new;
-      $parser->{include} = $parser->{include};
-
       my $file = main::findfile($1, main::dirname($self->{file}), @{$self->{include}});
-      my $s = $parser->parse($file);
-      if (defined $s) {
-        push(@{$self->{scope}->{declarations}}, @{$s->{declarations}});
+      if (defined $file) {
+        my $parser = RPG::Parser->new;
+        $parser->{include} = $parser->{include};
+        my $s = $parser->parse($file);
+        if (defined $s) {
+          push(@{$self->{scope}->{declarations}}, @{$s->{declarations}});
+        }
+      } else {
+        $self->warn("Failed to include file '$1'");
       }
       next;
     }
