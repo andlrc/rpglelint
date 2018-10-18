@@ -21,7 +21,7 @@ Mandatory arguments to long options are mandatory for short options too.
 =item B<-I>, B<--include>=I<glob>
 
 a file glob with directories that will be searched for included files, see
-B<INCLUDE>
+B<INCLUDE DIRECTORIES>
 
 =item B<-f>, B<--format>=I<format>
 
@@ -113,7 +113,7 @@ B<*BLANKS>) is not all uppercase
 
 =back
 
-=head1 INCLUDE
+=head1 INCLUDE DIRECTORIES
 
 The following will happen to included files when searched for existence:
 
@@ -165,7 +165,7 @@ The following environment variables are read and used by rpglelint as described.
 =item B<RPGLELINT_INCLUDE>
 
 a file glob with directories that will be searched for included files, see
-B<INCLUDE>
+B<INCLUDE DIRECTORIES>
 
 =back
 
