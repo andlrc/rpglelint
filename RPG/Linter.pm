@@ -26,25 +26,29 @@ my $RULES_UNUSED_VARIABLE = "unused-variable";
 my $RULES_UPPERCASE_CONSTANT = "uppercase-constant";
 my $RULES_UPPERCASE_INDICATOR = "uppercase-indicator";
 
+# always append to this list
+my $rules_numeric = [
+  $RULES_GLOBAL,
+  $RULES_INDICATOR,
+  $RULES_PARAMETER_MISMATCH,
+  $RULES_QUALIFIED,
+  $RULES_REDEFINING_SYMBOL,
+  $RULES_SAME_CASING,
+  $RULES_SHADOW,
+  $RULES_SUBROUTINE,
+  $RULES_UNDEFINED_REFERENCE,
+  $RULES_UNREACHABLE_CODE,
+  $RULES_UNUSED_PARAMETER,
+  $RULES_UNUSED_PROCEDURE,
+  $RULES_UNUSED_SUBROUTINE,
+  $RULES_UNUSED_VARIABLE,
+  $RULES_UPPERCASE_CONSTANT,
+  $RULES_UPPERCASE_INDICATOR,
+];
+
 # list of all rules turned off
-my $rules_default = {
-  $RULES_GLOBAL => 0,
-  $RULES_INDICATOR => 0,
-  $RULES_PARAMETER_MISMATCH => 0,
-  $RULES_QUALIFIED => 0,
-  $RULES_REDEFINING_SYMBOL => 0,
-  $RULES_SAME_CASING => 0,
-  $RULES_SHADOW => 0,
-  $RULES_SUBROUTINE => 0,
-  $RULES_UNDEFINED_REFERENCE => 0,
-  $RULES_UNREACHABLE_CODE => 0,
-  $RULES_UNUSED_PARAMETER => 0,
-  $RULES_UNUSED_PROCEDURE => 0,
-  $RULES_UNUSED_SUBROUTINE => 0,
-  $RULES_UNUSED_VARIABLE => 0,
-  $RULES_UPPERCASE_CONSTANT => 0,
-  $RULES_UPPERCASE_INDICATOR => 0,
-};
+my $rules_default = {};
+$rules_default->{$_} = 0 for (@{$rules_numeric});
 
 # turned on with -Wall
 my $rules_all = {
@@ -1253,33 +1257,38 @@ sub new
   return $self;
 }
 
-sub setoption
+sub setrule
 {
   my $self = shift;
-  my ($option) = @_;
+  my ($rule) = @_;
+  my $orig_rule = $rule;
 
   my $set = 1;
-  if ($option =~ m{ ^ no - (.*) }xsmig) {
-    $option = $1;
+  if ($rule =~ m{ ^ no - (.*) }xsmig) {
+    $rule = $1;
     $set = 0;
   }
 
-  if ($option eq "all") {
+  if ($rule eq "all") {
       $self->{rules}->{$_} = $set for (keys %{$rules_all});
       return $self;
   }
 
-  if ($option eq "extra") {
+  if ($rule eq "extra") {
       $self->{rules}->{$_} = $set for (keys %{$rules_all});
       return $self;
   }
 
-  if (grep { $_ eq $option } keys %{$rules_default}) {
-    $self->{rules}->{$option} = $set;
+  if ($rule =~ m{ ^ \d+ $ }xsmi) {
+    $rule = $rules_numeric->[$rule + 1];
+  }
+
+  if (defined $rule && grep { $_ eq $rule } keys %{$rules_default}) {
+    $self->{rules}->{$rule} = $set;
     return $self;
   }
 
-  die "unknown option '-W$option'";
+  die "unknown rule '-W$orig_rule'";
 }
 
 1;

@@ -217,8 +217,8 @@ sub parseopts
       push(@{$parser->{include}}, glob($value));
     },
     'W=s' => sub {
-      my ($name, $option) = @_;
-      $linter->setoption($option);
+      my ($name, $rule) = @_;
+      $linter->setrule($rule);
     },
     'h|help' => sub {
       pod2usage( -verbose => 99, -sections => "SYNOPSIS|DESCRIPTION|WARNINGS" );
