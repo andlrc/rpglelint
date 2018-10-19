@@ -203,6 +203,7 @@ sub serialize
   my $dump = {};
   $dump->{what} = $scope->{what} if defined $scope->{what};
   $dump->{name} = $scope->{name} if defined $scope->{name};
+  $dump->{file} = $scope->{file} if defined $scope->{file};
   $dump->{token} = $scope->{token} if defined $scope->{token};
   $dump->{type} = $scope->{type} if defined $scope->{type};
   $dump->{kws} = $scope->{kws} if defined $scope->{kws} && @{$scope->{kws}};
