@@ -219,7 +219,7 @@ warn when a subroutine is never executed
 warn when a declaration is never referred
 .IP "\fB\-Wuppercase\-constant\fR [\-Wall]" 4
 .IX Item "-Wuppercase-constant [-Wall]"
-warn when a constant \fBDCL-C\fR is not all uppercase
+warn when a constant (defined with \fBDCL-C\fR) is not all uppercase
 .IP "\fB\-Wuppercase\-indicator\fR [\-Wall]" 4
 .IX Item "-Wuppercase-indicator [-Wall]"
 warn when an indicator (including \fB*ON\fR, \fB*OFF\fR, \fB*OMIT\fR, \fB*BLANK\fR, and

@@ -112,7 +112,7 @@ warn when a declaration is never referred
 
 =item B<-Wuppercase-constant> [-Wall]
 
-warn when a constant B<DCL-C> is not all uppercase
+warn when a constant (defined with B<DCL-C>) is not all uppercase
 
 =item B<-Wuppercase-indicator> [-Wall]
 
