@@ -29,6 +29,14 @@ output format, either B<unix>, or B<json>
 
 set the warning I<name>, see B<WARNINGS> for a complete list of warnings
 
+=item B<--dump>
+
+dump the parsed tree
+
+=item B<--dump-file-only>
+
+dump the parsed tree, but exclude all included files
+
 =item B<-h>, B<--help>
 
 show help and exit

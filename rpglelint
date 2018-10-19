@@ -31,6 +31,14 @@ output format, either B<unix>, or B<json>
 
 set the warning I<name>, see B<WARNINGS> for a complete list of warnings
 
+=item B<--dump>
+
+dump the parsed tree
+
+=item B<--dump-file-only>
+
+dump the parsed tree, but exclude all included files
+
 =item B<-h>, B<--help>
 
 show help and exit
@@ -198,7 +206,8 @@ use JSON;
 my $parser = RPG::Parser->new;
 my $linter = RPG::Linter->new;
 
-my $dump = 0;
+my $fdump = 0;
+my $fdumpfile = 0;
 my $format = ''; # default is unix
 
 sub parseopts
@@ -207,7 +216,8 @@ sub parseopts
 
   GetOptionsFromArray($opts,
     'f|format=s' => \$format,
-    '--dump' => \$dump,
+    '--dump' => \$fdump,
+    '--dump-file-only' => \$fdumpfile,
     'I|include=s' => sub {
       my ($name, $value) = @_;
       push(@{$parser->{include}}, glob($value));
@@ -234,8 +244,20 @@ $parser->{parseopts} = \&parseopts;
 
 for my $file (@ARGV) {
   my $scope = $parser->parse($file);
-  if ($dump) {
-    print encode_json($parser->serialize($scope));
+  if ($fdump || $fdumpfile) {
+    my $dump = $parser->serialize($scope);
+    if ($fdumpfile) {
+      my $len = @{$dump->{declarations}};
+      for (my $i = 0; $i < $len; $i++) {
+        my $decl = $dump->{declarations}->[$i];
+        if ($decl->{file} ne $file) {
+          splice(@{$dump->{declarations}}, $i, 1);
+          $len--;
+          $i--;
+        }
+      }
+    }
+    print encode_json($dump);
   }
   else {
     my $errors = $linter->lint($scope);
