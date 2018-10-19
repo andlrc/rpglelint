@@ -28,50 +28,49 @@ sub calckw
   }
 }
 
-sub new
+sub readstmt
 {
-  my $class = shift;
-  my ($parser) = @_;
+  my $self = shift;
 
-  my $fh = $parser->{fh};
-
+  my $fh = $self->{fh};
   my $code = <$fh>;
+  unless (defined $code) {
+    return 0; # no lines to read
+  }
 
-  return undef unless defined $code;
-
-  my $self = {
-    file => $parser->{file},
-    startlineno => $.
-  };
-
-  bless($self, $class);
+  $self->{startlineno} = $.;
 
   # FIXME: Support multiline strings with '//' in them
   # remove trailing comments
   if ($code =~ s{ // (.*?) $ }{}xsi) {
+    push (@{$self->{comments}}, $1);
     if ($1 =~ m { rpglelint: (.*) }xsmi) {
       my @opts = grep { m/./ } split(/\s+/, $1);
-      $parser->{parseopts}->(\@opts);
+      $self->{parser}->{parseopts}->(\@opts);
     }
   }
 
+  # blank line, slurp until something else
   if ($code =~ m{ ^ \s* $ }xsi) {
-    # blank line
-    $self->{code} = $code;
+    return $self->readstmt();
   }
-  elsif ($code =~ m{ ^ \s* / .* $ }xsi) {
-    # compiler directive
+
+  # compiler directive
+  if ($code =~ m{ ^ \s* / .* $ }xsi) {
     $self->{code} = $code;
+    return 1;
   }
-  elsif ($code !~ m{ ; \s* $ }xsmi) {
-    # continuously line
+
+  # continuously line
+  if ($code !~ m{ ; \s* $ }xsmi) {
     while (my $line = <$fh>) {
       # FIXME: Support multiline strings with '//' in them
       # remove trailing comments
       if ($code =~ s{ // (.*?) $ }{}xsi) {
+        push (@{$self->{comments}}, $1);
         if ($1 =~ m { rpglelint: (.*) }xsmi) {
           my @opts = grep { m/./ } split(/\s+/, $1);
-          $parser->{parseopts}->(\@opts);
+          $self->{parser}->{parseopts}->(\@opts);
         }
       }
 
@@ -80,12 +79,34 @@ sub new
       last if $line =~ m{ ; \s* $ }xsmi;
     }
     $self->{code} = $code;
-  }
-  else {
-    $self->{code} = $code;
+    return 1;
   }
 
-  return $self;
+  # a one lined statement
+  $self->{code} = $code;
+  return 1;
+}
+
+sub new
+{
+  my $class = shift;
+  my ($parser) = @_;
+
+  my $self = {
+    file => $parser->{file},
+    fh => $parser->{fh},
+    parser => $parser,
+    comments => []
+  };
+
+  bless($self, $class);
+
+  if ($self->readstmt()) {
+    return $self;
+  }
+  else {
+    return undef; # no more lines to read
+  }
 }
 
 1;

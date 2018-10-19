@@ -193,7 +193,7 @@ use Pod::Usage;
 
 use RPG::Parser;
 use RPG::Linter;
-use Data::Dumper;
+use JSON;
 
 my $parser = RPG::Parser->new;
 my $linter = RPG::Linter->new;
@@ -235,7 +235,7 @@ $parser->{parseopts} = \&parseopts;
 for my $file (@ARGV) {
   my $scope = $parser->parse($file);
   if ($dump) {
-    print Dumper($scope);
+    print encode_json($parser->serialize($scope));
   }
   else {
     my $errors = $linter->lint($scope);

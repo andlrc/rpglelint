@@ -2,8 +2,9 @@ use strict;
 use warnings;
 use v5.16;
 use RPG::Statement;
-use File::Basename;
 use RPG::Constant qw{ :DCL :CALC };
+
+use File::Basename;
 
 use Exporter;
 
@@ -195,6 +196,48 @@ sub getstmt
   my $stmt = RPG::Statement->new($self);
   $self->{stmt} = $stmt;
   return $stmt;
+}
+
+sub serialize
+{
+  my $self = shift;
+  my ($scope) = @_;
+
+  my $dump = {};
+  $dump->{what} = $scope->{what} if defined $scope->{what};
+  $dump->{name} = $scope->{name} if defined $scope->{name};
+  $dump->{token} = $scope->{token} if defined $scope->{token};
+  $dump->{type} = $scope->{type} if defined $scope->{type};
+  $dump->{kws} = $scope->{kws} if defined $scope->{kws} && @{$scope->{kws}};
+  if (defined $scope->{stmt}->{comments} && @{$scope->{stmt}->{comments}}) {
+    $dump->{comments} = $scope->{stmt}->{comments};
+  }
+
+  for (@{$scope->{declarations}}) {
+    push(@{$dump->{declarations}}, $self->serialize($_));
+  }
+
+  for (@{$scope->{calculations}}) {
+    push(@{$dump->{calculations}}, $self->serialize($_));
+  }
+
+  for my $name (keys %{$scope->{procedures}}) {
+    push(@{$dump->{procedures}}, $self->serialize($scope->{procedures}->{$name}));
+  }
+
+  for my $name (keys %{$scope->{subroutines}}) {
+    push(@{$dump->{subroutines}}, $self->serialize($scope->{subroutines}->{$name}));
+  }
+
+  for (@{$scope->{parameters}}) {
+    push(@{$dump->{parameters}}, $self->serialize($_));
+  }
+
+  for (@{$scope->{fields}}) {
+    push(@{$dump->{fields}}, $self->serialize($_));
+  }
+
+  return $dump;
 }
 
 sub parse
