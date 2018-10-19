@@ -112,9 +112,6 @@ sub subf
 
   while (my $stmt = $self->getstmt()) {
 
-    # skip blank lines
-    next if $stmt->{code} =~ m{ ^ \s* $ }xsi;
-
     # skip other compiler directive
     next if $stmt->{code} =~ m{ ^ \s* / }xsmi;
 
@@ -283,9 +280,6 @@ sub parse
       }
       next;
     }
-
-    # skip blank lines
-    next if $stmt->{code} =~ m{ ^ \s* $ }xsi;
 
     # skip other compiler directive
     next if $stmt->{code} =~ m{ ^ \s* / }xsmi;
