@@ -203,6 +203,9 @@ use RPG::Parser;
 use RPG::Linter;
 use JSON;
 
+our $PGM = "rpglelint";
+our $VERSION = "0.8.2";
+
 my $parser = RPG::Parser->new;
 my $linter = RPG::Linter->new;
 
@@ -226,11 +229,15 @@ sub parseopts
       my ($name, $rule) = @_;
       $linter->setrule($rule);
     },
+    'V|version' => sub {
+      printf("%s %s\n", $PGM, $VERSION);
+      exit(0);
+    },
     'h|help' => sub {
       pod2usage( -verbose => 99, -sections => "SYNOPSIS|DESCRIPTION|WARNINGS" );
-      exit 0;
+      exit(0);
     }
-  ) or pod2usage( -verbose => 0, -exitval => 2 );
+  ) or exit(2);
 }
 
 if (defined $ENV{RPGLELINT_INCLUDE}) {

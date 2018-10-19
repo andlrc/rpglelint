@@ -21,6 +21,7 @@ use constant CALC_EXSR => 'exsr';
 use constant CALC_IND => 'ind';
 use constant CALC_OP => 'op';
 
+use constant COLOR_ERR => -t 1 ? "\033[1;31m" : '';
 use constant COLOR_WARN => -t 1 ? "\033[1;35m" : '';
 use constant COLOR_NOTE => -t 1 ? "\033[1;36m" : '';
 use constant COLOR_RESET => -t 1 ? "\033[0m" : '';
@@ -67,6 +68,7 @@ our %EXPORT_TAGS = (
     'CALC_OP'
   ],
   COLOR => [
+    'COLOR_ERR',
     'COLOR_WARN',
     'COLOR_NOTE',
     'COLOR_RESET'

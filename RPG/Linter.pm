@@ -376,8 +376,9 @@ sub error
     return $self;
   }
 
-
-  die "unknown lint message";
+  printf(STDERR "%serror:%s unknown lint type '%s'\n",
+         main::COLOR_ERR, main::COLOR_RESET, $what);
+  exit(2);
 }
 
 sub lint
@@ -1245,12 +1246,28 @@ sub setrule
       return $self;
   }
 
-  if (grep { $_ eq $rule } @rules) {
+  # exact match
+  if (defined $self->{rules}->{$rule}) {
     $self->{rules}->{$rule} = $set;
     return $self;
   }
 
-  die "unknown rule '-W$orig_rule'";
+  # globbed match
+  my @matches = grep { $_ =~ m{ ^ $rule }x } @rules;
+  if (@matches == 1) {
+    $self->{rules}->{$matches[0]} = $set;
+    return $self;
+  }
+  elsif (@matches > 1) {
+    printf(STDERR "%serror:%s warning '%s' is ambigious (%s)\n",
+           main::COLOR_ERR, main::COLOR_RESET,
+           $orig_rule, join(", ", @matches));
+    exit(2);
+  }
+
+  printf(STDERR "%serror:%s unknown warning '%s'\n",
+         main::COLOR_ERR, main::COLOR_RESET, $orig_rule);
+  exit(2);
 }
 
 1;
