@@ -1,92 +1,49 @@
 use strict;
 use warnings;
 use v5.16;
-use RPG::Constant qw{ :DCL :CALC :COLOR };
 use JSON;
+use RPG::Constant qw{ :DCL :CALC :COLOR :LINT :RULES };
 
 use Exporter;
 
-my $LINT_NOTE = "note";
-my $LINT_WARN = "warning";
-
-my $RULES_GLOBAL = "global";
-my $RULES_INDICATOR = "indicator";
-my $RULES_PARAMETER_MISMATCH = "parameter-mismatch";
-my $RULES_QUALIFIED = "qualified";
-my $RULES_REDEFINING_SYMBOL = "redefining-symbol";
-my $RULES_SAME_CASING = "same-casing";
-my $RULES_SHADOW = "shadow";
-my $RULES_SUBROUTINE = "subroutine";
-my $RULES_UNDEFINED_REFERENCE = "undefined-reference";
-my $RULES_UNREACHABLE_CODE = "unreachable-code";
-my $RULES_UNUSED_PARAMETER = "unused-parameter";
-my $RULES_UNUSED_PROCEDURE = "unused-procedure";
-my $RULES_UNUSED_SUBROUTINE = "unused-subroutine";
-my $RULES_UNUSED_VARIABLE = "unused-variable";
-my $RULES_UPPERCASE_CONSTANT = "uppercase-constant";
-my $RULES_UPPERCASE_INDICATOR = "uppercase-indicator";
-
-# always append to this list
-my $rules_numeric = [
-  $RULES_GLOBAL,
-  $RULES_INDICATOR,
-  $RULES_PARAMETER_MISMATCH,
-  $RULES_QUALIFIED,
-  $RULES_REDEFINING_SYMBOL,
-  $RULES_SAME_CASING,
-  $RULES_SHADOW,
-  $RULES_SUBROUTINE,
-  $RULES_UNDEFINED_REFERENCE,
-  $RULES_UNREACHABLE_CODE,
-  $RULES_UNUSED_PARAMETER,
-  $RULES_UNUSED_PROCEDURE,
-  $RULES_UNUSED_SUBROUTINE,
-  $RULES_UNUSED_VARIABLE,
-  $RULES_UPPERCASE_CONSTANT,
-  $RULES_UPPERCASE_INDICATOR,
-];
-
-# list of all rules turned off
-my $rules_default = {};
-$rules_default->{$_} = 0 for (@{$rules_numeric});
+my @rules = (
+  main::RULES_GLOBAL,
+  main::RULES_INDICATOR,
+  main::RULES_PARAMETER_MISMATCH,
+  main::RULES_QUALIFIED,
+  main::RULES_REDEFINING_SYMBOL,
+  main::RULES_SAME_CASING,
+  main::RULES_SHADOW,
+  main::RULES_SUBROUTINE,
+  main::RULES_UNDEFINED_REFERENCE,
+  main::RULES_UNREACHABLE_CODE,
+  main::RULES_UNUSED_PARAMETER,
+  main::RULES_UNUSED_PROCEDURE,
+  main::RULES_UNUSED_SUBROUTINE,
+  main::RULES_UNUSED_VARIABLE,
+  main::RULES_UPPERCASE_CONSTANT,
+  main::RULES_UPPERCASE_INDICATOR,
+);
 
 # turned on with -Wall
-my $rules_all = {
-  $RULES_INDICATOR => 0,
-  $RULES_PARAMETER_MISMATCH => 0,
-  $RULES_QUALIFIED => 0,
-  $RULES_REDEFINING_SYMBOL => 0,
-  $RULES_UNDEFINED_REFERENCE => 0,
-  $RULES_UPPERCASE_CONSTANT => 0,
-  $RULES_UPPERCASE_INDICATOR => 0,
-};
+my @rules_all = (
+  main::RULES_INDICATOR,
+  main::RULES_PARAMETER_MISMATCH,
+  main::RULES_QUALIFIED,
+  main::RULES_REDEFINING_SYMBOL,
+  main::RULES_UNDEFINED_REFERENCE,
+  main::RULES_UPPERCASE_CONSTANT,
+  main::RULES_UPPERCASE_INDICATOR
+);
 
 # turned on with -Wextra
-my $rules_extra = {
-  $RULES_SAME_CASING => 0,
-  $RULES_UNUSED_PARAMETER => 0,
-  $RULES_UNUSED_PROCEDURE => 0,
-  $RULES_UNUSED_SUBROUTINE => 0,
-  $RULES_UNUSED_VARIABLE => 0,
-};
-
-# exported
-sub rules_default
-{
-  return { %{ $rules_default } };
-}
-
-# exported
-sub rules_all
-{
-  return { %{ $rules_all } };
-}
-
-# exported
-sub rules_extra
-{
-  return { %{ $rules_extra } };
-}
+my @rules_extra = (
+  main::RULES_SAME_CASING,
+  main::RULES_UNUSED_PARAMETER,
+  main::RULES_UNUSED_PROCEDURE,
+  main::RULES_UNUSED_SUBROUTINE,
+  main::RULES_UNUSED_VARIABLE,
+);
 
 my $cmptype = sub
 {
@@ -242,14 +199,14 @@ sub print_unix
   my ($errors) = @_;
 
   for my $error (@{$errors}) {
-    if ($error->{type} eq $LINT_WARN) {
+    if ($error->{type} eq main::LINT_WARN) {
       printf("%s:%d:%d: %swarning:%s %s [%s-W%s%s]\n",
              $error->{file}, $error->{lineno}, $error->{column},
              main::COLOR_WARN, main::COLOR_RESET, $error->{msg},
              main::COLOR_WARN, $error->{what}, main::COLOR_RESET);
       $self->print_unix_code(main::COLOR_WARN, $error);
     }
-    elsif ($error->{type} eq $LINT_NOTE) {
+    elsif ($error->{type} eq main::LINT_NOTE) {
       printf("%s:%d:%d: %snote:%s %s\n",
              $error->{file}, $error->{lineno}, $error->{column},
              main::COLOR_NOTE, main::COLOR_RESET, $error->{msg});
@@ -322,97 +279,97 @@ sub error
     return $err;
   };
 
-  if ($what eq $RULES_GLOBAL) {
-    $adderr->($what, $LINT_WARN,
+  if ($what eq main::RULES_GLOBAL) {
+    $adderr->($what, main::LINT_WARN,
               sprintf("global declaration '%s' is not allowed", $data[0]->{name}),
               $data[0]);
     return $self;
   }
 
-  if ($what eq $RULES_INDICATOR) {
-    $adderr->($what, $LINT_WARN, sprintf("indicator '%s' is not allowed", $data[0]->{token}), $data[0]);
+  if ($what eq main::RULES_INDICATOR) {
+    $adderr->($what, main::LINT_WARN, sprintf("indicator '%s' is not allowed", $data[0]->{token}), $data[0]);
     return $self;
   }
 
-  if ($what eq $RULES_PARAMETER_MISMATCH) {
-    my $error = $adderr->($what, $LINT_WARN, sprintf("conflicting types for '%s'", $data[0]->{name}), $data[0]);
-    my $note = $adderr->($what, $LINT_NOTE, sprintf("previous declaration of '%s' was here", $data[1]->{name}), $data[1]);
+  if ($what eq main::RULES_PARAMETER_MISMATCH) {
+    my $error = $adderr->($what, main::LINT_WARN, sprintf("conflicting types for '%s'", $data[0]->{name}), $data[0]);
+    my $note = $adderr->($what, main::LINT_NOTE, sprintf("previous declaration of '%s' was here", $data[1]->{name}), $data[1]);
     $note->{linksto} = $error;
     return $self;
   }
 
-  if ($what eq $RULES_QUALIFIED) {
-    $adderr->($what, $LINT_WARN,
+  if ($what eq main::RULES_QUALIFIED) {
+    $adderr->($what, main::LINT_WARN,
               sprintf("data structure '%s' needs to be qualified", $data[0]->{name}),
               $data[0]);
     return $self;
   }
 
-  if ($what eq $RULES_REDEFINING_SYMBOL) {
-    my $error = $adderr->($what, $LINT_WARN, sprintf("redefinition of '%s' as a different kind of symbol", $data[0]->{name}), $data[0]);
-    my $note = $adderr->($what, $LINT_NOTE, "previous definition is here", $data[1]);
+  if ($what eq main::RULES_REDEFINING_SYMBOL) {
+    my $error = $adderr->($what, main::LINT_WARN, sprintf("redefinition of '%s' as a different kind of symbol", $data[0]->{name}), $data[0]);
+    my $note = $adderr->($what, main::LINT_NOTE, "previous definition is here", $data[1]);
     $note->{linksto} = $error;
     return $self;
   }
 
-  if ($what eq $RULES_SAME_CASING) {
-    my $error = $adderr->($what, $LINT_WARN, sprintf("'%s' is not in the same casing as '%s'", $data[0]->{token} || $data[0]->{likeds}, $data[1]->{name}), $data[0]);
-    my $note = $adderr->($what, $LINT_NOTE, "definition is here", $data[1]);
+  if ($what eq main::RULES_SAME_CASING) {
+    my $error = $adderr->($what, main::LINT_WARN, sprintf("'%s' is not in the same casing as '%s'", $data[0]->{token} || $data[0]->{likeds}, $data[1]->{name}), $data[0]);
+    my $note = $adderr->($what, main::LINT_NOTE, "definition is here", $data[1]);
     $note->{linksto} = $error;
     return $self;
   }
 
-  if ($what eq $RULES_SHADOW) {
-    my $error = $adderr->($what, $LINT_WARN, sprintf("declaration of '%s' shadows a global declaration", $data[0]->{name}), $data[0]);
-    my $note = $adderr->($what, $LINT_NOTE, "shadowed declaration is here", $data[1]);
+  if ($what eq main::RULES_SHADOW) {
+    my $error = $adderr->($what, main::LINT_WARN, sprintf("declaration of '%s' shadows a global declaration", $data[0]->{name}), $data[0]);
+    my $note = $adderr->($what, main::LINT_NOTE, "shadowed declaration is here", $data[1]);
     $note->{linksto} = $error;
     return $self;
   }
 
-  if ($what eq $RULES_SUBROUTINE) {
-    $adderr->($what, $LINT_WARN, sprintf("subroutine '%s' is not allowed", $data[0]->{name}), $data[0]);
+  if ($what eq main::RULES_SUBROUTINE) {
+    $adderr->($what, main::LINT_WARN, sprintf("subroutine '%s' is not allowed", $data[0]->{name}), $data[0]);
     return $self;
   }
 
-  if ($what eq $RULES_UNDEFINED_REFERENCE) {
-    $adderr->($what, $LINT_WARN, sprintf("'%s' undeclared", $data[0]->{token}), $data[0]);
+  if ($what eq main::RULES_UNDEFINED_REFERENCE) {
+    $adderr->($what, main::LINT_WARN, sprintf("'%s' undeclared", $data[0]->{token}), $data[0]);
     return $self;
   }
 
-  if ($what eq $RULES_UNREACHABLE_CODE) {
-    $adderr->($what, $LINT_WARN, "code will never be executed", $data[0]);
+  if ($what eq main::RULES_UNREACHABLE_CODE) {
+    $adderr->($what, main::LINT_WARN, "code will never be executed", $data[0]);
     return $self;
   }
 
-  if ($what eq $RULES_UNUSED_PARAMETER) {
-    $adderr->($what, $LINT_WARN, sprintf("'%s' defined but not used", $data[0]->{name}), $data[0]);
+  if ($what eq main::RULES_UNUSED_PARAMETER) {
+    $adderr->($what, main::LINT_WARN, sprintf("'%s' defined but not used", $data[0]->{name}), $data[0]);
     return $self;
   }
 
-  if ($what eq $RULES_UNUSED_PROCEDURE) {
-    $adderr->($what, $LINT_WARN, sprintf("'%s' defined but not used", $data[0]->{name}), $data[0]);
+  if ($what eq main::RULES_UNUSED_PROCEDURE) {
+    $adderr->($what, main::LINT_WARN, sprintf("'%s' defined but not used", $data[0]->{name}), $data[0]);
     return $self;
   }
 
-  if ($what eq $RULES_UNUSED_SUBROUTINE) {
-    $adderr->($what, $LINT_WARN, sprintf("'%s' defined but not used", $data[0]->{name}), $data[0]);
+  if ($what eq main::RULES_UNUSED_SUBROUTINE) {
+    $adderr->($what, main::LINT_WARN, sprintf("'%s' defined but not used", $data[0]->{name}), $data[0]);
     return $self;
   }
 
-  if ($what eq $RULES_UNUSED_VARIABLE) {
-    $adderr->($what, $LINT_WARN, sprintf("'%s' defined but not used", $data[0]->{name}), $data[0]);
+  if ($what eq main::RULES_UNUSED_VARIABLE) {
+    $adderr->($what, main::LINT_WARN, sprintf("'%s' defined but not used", $data[0]->{name}), $data[0]);
     return $self;
   }
 
-  if ($what eq $RULES_UPPERCASE_CONSTANT) {
-    $adderr->($what, $LINT_WARN,
+  if ($what eq main::RULES_UPPERCASE_CONSTANT) {
+    $adderr->($what, main::LINT_WARN,
               sprintf("constant '%s' needs to be all uppercase", $data[0]->{name}),
               $data[0]);
     return $self;
   }
 
-  if ($what eq $RULES_UPPERCASE_INDICATOR) {
-    $adderr->($what, $LINT_WARN, sprintf("indicator '%s' needs to be all uppercase", $data[0]->{token}), $data[0]);
+  if ($what eq main::RULES_UPPERCASE_INDICATOR) {
+    $adderr->($what, main::LINT_WARN, sprintf("indicator '%s' needs to be all uppercase", $data[0]->{token}), $data[0]);
     return $self;
   }
 
@@ -428,67 +385,67 @@ sub lint
   $self->{linterrors} = [];
   $self->{file} = $scope->{file};
 
-  if ($self->{rules}->{$RULES_GLOBAL}) {
+  if ($self->{rules}->{main::RULES_GLOBAL}) {
     $self->lint_global($scope);
   }
 
-  if ($self->{rules}->{$RULES_INDICATOR}) {
+  if ($self->{rules}->{main::RULES_INDICATOR}) {
     $self->lint_indicator($scope);
   }
 
-  if ($self->{rules}->{$RULES_PARAMETER_MISMATCH}) {
+  if ($self->{rules}->{main::RULES_PARAMETER_MISMATCH}) {
     $self->lint_parameter_mismatch($scope);
   }
 
-  if ($self->{rules}->{$RULES_QUALIFIED}) {
+  if ($self->{rules}->{main::RULES_QUALIFIED}) {
     $self->lint_qualified($scope);
   }
 
-  if ($self->{rules}->{$RULES_REDEFINING_SYMBOL}) {
+  if ($self->{rules}->{main::RULES_REDEFINING_SYMBOL}) {
     $self->lint_redefining_symbol($scope);
   }
 
-  if ($self->{rules}->{$RULES_SAME_CASING}) {
+  if ($self->{rules}->{main::RULES_SAME_CASING}) {
     $self->lint_same_casing($scope);
   }
 
-  if ($self->{rules}->{$RULES_SHADOW}) {
+  if ($self->{rules}->{main::RULES_SHADOW}) {
     $self->lint_shadow($scope);
   }
 
-  if ($self->{rules}->{$RULES_SUBROUTINE}) {
+  if ($self->{rules}->{main::RULES_SUBROUTINE}) {
     $self->lint_subroutine($scope);
   }
 
-  if ($self->{rules}->{$RULES_UNDEFINED_REFERENCE}) {
+  if ($self->{rules}->{main::RULES_UNDEFINED_REFERENCE}) {
     $self->lint_undefined_reference($scope);
   }
 
-  if ($self->{rules}->{$RULES_UNREACHABLE_CODE}) {
+  if ($self->{rules}->{main::RULES_UNREACHABLE_CODE}) {
     $self->lint_unreachable_code($scope);
   }
 
-  if ($self->{rules}->{$RULES_UNUSED_PARAMETER}) {
+  if ($self->{rules}->{main::RULES_UNUSED_PARAMETER}) {
     $self->lint_unused_parameter($scope);
   }
 
-  if ($self->{rules}->{$RULES_UNUSED_PROCEDURE}) {
+  if ($self->{rules}->{main::RULES_UNUSED_PROCEDURE}) {
     $self->lint_unused_procedure($scope);
   }
 
-  if ($self->{rules}->{$RULES_UNUSED_SUBROUTINE}) {
+  if ($self->{rules}->{main::RULES_UNUSED_SUBROUTINE}) {
     $self->lint_unused_subroutine($scope);
   }
 
-  if ($self->{rules}->{$RULES_UNUSED_VARIABLE}) {
+  if ($self->{rules}->{main::RULES_UNUSED_VARIABLE}) {
     $self->lint_unused_variable($scope);
   }
 
-  if ($self->{rules}->{$RULES_UPPERCASE_CONSTANT}) {
+  if ($self->{rules}->{main::RULES_UPPERCASE_CONSTANT}) {
     $self->lint_uppercase_constant($scope);
   }
 
-  if ($self->{rules}->{$RULES_UPPERCASE_INDICATOR}) {
+  if ($self->{rules}->{main::RULES_UPPERCASE_INDICATOR}) {
     $self->lint_uppercase_indicator($scope);
   }
 
@@ -505,7 +462,7 @@ sub lint_global
   for (@{$scope->{declarations}}) {
     # data structure templates are allowed to be global
     if ($_->{what} eq main::DCL_S || $_->{what} eq main::DCL_DS && !$_->{template}) {
-      $self->error($RULES_GLOBAL, $_);
+      $self->error(main::RULES_GLOBAL, $_);
     }
   }
 
@@ -525,7 +482,8 @@ sub lint_shadow
 
     if (defined $gdecls) {
       $decls = { %{$gdecls} };
-    } else {
+    }
+    else {
       $gdecls = {};
       $decls = $gdecls;
     }
@@ -556,7 +514,7 @@ sub lint_shadow
 
         return if ($prevdecl->{what} eq main::DCL_PR && $decl->{what} eq main::DCL_PROC);
 
-        $self->error($RULES_SHADOW, $decl, $prevdecl);
+        $self->error(main::RULES_SHADOW, $decl, $prevdecl);
       }
     );
   });
@@ -581,7 +539,7 @@ sub lint_qualified
           $qualified = 1 if grep({ $_->{qualified} } @{$dschain});
         }
 
-        $self->error($RULES_QUALIFIED, $_) unless $qualified;
+        $self->error(main::RULES_QUALIFIED, $_) unless $qualified;
       }
     }
   });
@@ -601,7 +559,7 @@ sub lint_uppercase_constant
         if ($_->{what} eq main::DCL_C) {
           next if uc $_->{name} eq $_->{name};
 
-          $self->error($RULES_UPPERCASE_CONSTANT, $_);
+          $self->error(main::RULES_UPPERCASE_CONSTANT, $_);
         }
       }
   });
@@ -623,7 +581,8 @@ sub lint_undefined_reference
 
     if (defined $gdecls) {
       $decls = { %{$gdecls} };
-    } else {
+    }
+    else {
       $gdecls = {};
       $decls = $gdecls;
     }
@@ -650,7 +609,7 @@ sub lint_undefined_reference
     for (@{$scope->{declarations}}) {
       next unless $_->{what} eq main::DCL_DS;
       next unless defined $_->{likeds};
-      $self->error($RULES_UNDEFINED_REFERENCE, {
+      $self->error(main::RULES_UNDEFINED_REFERENCE, {
         file => $_->{file},
         line => $_->{line},
         lineno => $_->{lineno},
@@ -662,7 +621,7 @@ sub lint_undefined_reference
     for (@{$scope->{calculations}}) {
       if ($_->{what} eq main::CALC_IDENT) {
         unless (defined $decls->{fc $_->{token}}) {
-          $self->error($RULES_UNDEFINED_REFERENCE, $_);
+          $self->error(main::RULES_UNDEFINED_REFERENCE, $_);
         }
         next;
       }
@@ -674,14 +633,14 @@ sub lint_undefined_reference
         my $ds = $dschain->[-1];
 
         unless (grep { $_->{name} eq $token } @{$ds->{fields}}) {
-          $self->error($RULES_UNDEFINED_REFERENCE, $_);
+          $self->error(main::RULES_UNDEFINED_REFERENCE, $_);
         }
         next;
       }
 
       if ($_->{what} eq main::CALC_EXSR) {
         unless (defined $scope->{subroutines}->{fc $_->{name}}) {
-          $self->error($RULES_UNDEFINED_REFERENCE, $_);
+          $self->error(main::RULES_UNDEFINED_REFERENCE, $_);
         }
       }
     }
@@ -700,7 +659,7 @@ sub lint_subroutine
 
     for (keys %{$scope->{subroutines}}) {
       my $sub = $scope->{subroutines}->{$_};
-      $self->error($RULES_SUBROUTINE, $sub);
+      $self->error(main::RULES_SUBROUTINE, $sub);
     }
   });
 
@@ -719,7 +678,7 @@ sub lint_uppercase_indicator
       if ($_->{what} eq main::CALC_IND) {
         next if uc $_->{token} eq $_->{token};
 
-        $self->error($RULES_UPPERCASE_INDICATOR, $_);
+        $self->error(main::RULES_UPPERCASE_INDICATOR, $_);
       }
     }
   });
@@ -742,7 +701,7 @@ sub lint_indicator
           \* (?: ON | OFF | NULL | BLANK | BLANKS | OMIT )
         }xsmi;
 
-        $self->error($RULES_INDICATOR, $_);
+        $self->error(main::RULES_INDICATOR, $_);
       }
     }
   });
@@ -775,7 +734,7 @@ sub lint_unused_parameter
     for (keys %{$decls}) {
       my $decl = $decls->{$_};
       next if $decl == 0;
-      $self->error($RULES_UNUSED_PARAMETER, $decl);
+      $self->error(main::RULES_UNUSED_PARAMETER, $decl);
     }
   };
 
@@ -805,7 +764,7 @@ sub lint_unused_procedure
   for (keys %{$procs}) {
     my $proc = $procs->{$_};
     next if $proc == 0 || $proc->{exported};
-    $self->error($RULES_UNUSED_PROCEDURE, $proc);
+    $self->error(main::RULES_UNUSED_PROCEDURE, $proc);
   }
 
   return $self;
@@ -844,7 +803,7 @@ sub lint_unused_subroutine
     for (keys %{$subrs}) {
       my $subr = $subrs->{$_};
       next if $subr == 0;
-      $self->error($RULES_UNUSED_SUBROUTINE, $subr);
+      $self->error(main::RULES_UNUSED_SUBROUTINE, $subr);
     }
   });
 
@@ -868,7 +827,7 @@ sub lint_unused_variable
       # ignore parameters as they are checked with -Wunused-parameter
       next if $decl == 0 || $decl->{what} eq main::DCL_PARM;
 
-      $self->error($RULES_UNUSED_VARIABLE, $decl) unless $decl == 0;
+      $self->error(main::RULES_UNUSED_VARIABLE, $decl) unless $decl == 0;
     }
   };
 
@@ -878,7 +837,8 @@ sub lint_unused_variable
 
     if (defined $gdecls) {
       $decls = {};
-    } else {
+    }
+    else {
       $gdecls = {};
       $decls = $gdecls;
     }
@@ -973,7 +933,7 @@ sub lint_redefining_symbol
         # dcl-proc isn't redefining a dcl-pr
         return if ($prevdecl->{what} eq main::DCL_PR && $decl->{what} eq main::DCL_PROC);
 
-        $self->error($RULES_REDEFINING_SYMBOL, $decl, $prevdecl);
+        $self->error(main::RULES_REDEFINING_SYMBOL, $decl, $prevdecl);
       }
     );
   });
@@ -1125,7 +1085,7 @@ sub lint_unreachable_code
       my $returned = 0;
       my $unreached = $checkcalcs->($scope, $calc, $calcs, \$returned);
       if (defined $unreached) {
-        $self->error($RULES_UNREACHABLE_CODE, $unreached);
+        $self->error(main::RULES_UNREACHABLE_CODE, $unreached);
         last;
       }
     }
@@ -1148,7 +1108,8 @@ sub lint_same_casing
 
     if (defined $gdecls) {
       $decls = { %{$gdecls} };
-    } else {
+    }
+    else {
       $gdecls = {};
       $decls = $gdecls;
     }
@@ -1177,7 +1138,7 @@ sub lint_same_casing
       next unless defined $_->{likeds};
       my $decl = $decls->{fc $_->{likeds}};
       if (defined $decl && $decl->{name} ne $_->{likeds}) {
-        $self->error($RULES_SAME_CASING, $_, $decl);
+        $self->error(main::RULES_SAME_CASING, $_, $decl);
       }
     }
 
@@ -1185,7 +1146,7 @@ sub lint_same_casing
       if ($_->{what} eq main::CALC_IDENT) {
         my $decl = $decls->{fc $_->{token}};
         if (defined $decl && $decl->{name} ne $_->{token}) {
-          $self->error($RULES_SAME_CASING, $_, $decl);
+          $self->error(main::RULES_SAME_CASING, $_, $decl);
         }
       }
     }
@@ -1221,22 +1182,22 @@ sub lint_parameter_mismatch
       next unless defined $proc;
 
       if (!$cmptype->($proc->{returns}, $decl->{returns})) {
-        $self->error($RULES_PARAMETER_MISMATCH, $proc, $decl);
+        $self->error(main::RULES_PARAMETER_MISMATCH, $proc, $decl);
         next;
       }
       for my $index (0..scalar(@{$decl->{parameters}}) - 1) {
         my $prparm = $decl->{parameters}->[$index];
         my $procparm = $proc->{parameters}->[$index];
         if (!defined $procparm) {
-          $self->error($RULES_PARAMETER_MISMATCH, $proc, $decl);
+          $self->error(main::RULES_PARAMETER_MISMATCH, $proc, $decl);
           last;
         }
         if (!$cmptype->($prparm->{type}, $procparm->{type})) {
-          $self->error($RULES_PARAMETER_MISMATCH, $proc, $decl);
+          $self->error(main::RULES_PARAMETER_MISMATCH, $proc, $decl);
           last;
         }
         if (!$cmpkws->($prparm->{kws}, $procparm->{kws})) {
-          $self->error($RULES_PARAMETER_MISMATCH, $proc, $decl);
+          $self->error(main::RULES_PARAMETER_MISMATCH, $proc, $decl);
           last;
         }
       }
@@ -1250,8 +1211,10 @@ sub new
 {
   my $class = shift;
   my $self = {
-    rules => { %{$rules_default} }
+    rules => {}
   };
+  $self->{rules}->{$_} = 0 for @rules;
+
   bless($self, $class);
 
   return $self;
@@ -1270,20 +1233,16 @@ sub setrule
   }
 
   if ($rule eq "all") {
-      $self->{rules}->{$_} = $set for (keys %{$rules_all});
+      $self->{rules}->{$_} = $set for @rules_all;
       return $self;
   }
 
   if ($rule eq "extra") {
-      $self->{rules}->{$_} = $set for (keys %{$rules_all});
+      $self->{rules}->{$_} = $set for @rules_extra;
       return $self;
   }
 
-  if ($rule =~ m{ ^ \d+ $ }xsmi) {
-    $rule = $rules_numeric->[$rule + 1];
-  }
-
-  if (defined $rule && grep { $_ eq $rule } keys %{$rules_default}) {
+  if (grep { $_ eq $rule } @rules) {
     $self->{rules}->{$rule} = $set;
     return $self;
   }

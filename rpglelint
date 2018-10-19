@@ -205,10 +205,6 @@ sub parseopts
 {
   my ($opts) = @_;
 
-  my $rules_default = rules_default();
-  my $rules_all = rules_all();
-  my $rules_extra = rules_extra();
-
   GetOptionsFromArray($opts,
     'f|format=s' => \$format,
     '--dump' => \$dump,

@@ -2,8 +2,8 @@ use strict;
 use warnings;
 use v5.16;
 use RPG::Statement;
-use RPG::Constant qw{ :DCL :CALC };
 use File::Basename;
+use RPG::Constant qw{ :DCL :CALC };
 
 use Exporter;
 
@@ -213,7 +213,8 @@ sub parse
 
   if ($self->{file} eq "-") {
     $self->{fh} = *STDIN;
-  } else {
+  }
+  else {
     if (!open($self->{fh}, "<", $self->{file})) {
       $self->warn("$self->{file} $!");
       return undef;
@@ -233,7 +234,8 @@ sub parse
         if (defined $s) {
           push(@{$self->{scope}->{declarations}}, @{$s->{declarations}});
         }
-      } else {
+      }
+      else {
         $self->warn("Failed to include file '$1'");
       }
       next;
@@ -352,9 +354,11 @@ sub parse
       for (@kws) {
         if (m{ likeds \( (.*?) \) }xsmi) {
           $decl->{likeds} = $1;
-        } elsif (m{ qualified }xsmi) {
+        }
+        elsif (m{ qualified }xsmi) {
           $decl->{qualified} = 1;
-        } elsif (m{ template }xsmi) {
+        }
+        elsif (m{ template }xsmi) {
           $decl->{template} = 1;
         }
       }
