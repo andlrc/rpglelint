@@ -251,7 +251,10 @@ sub print_json
     }
   } @{$errors};
 
-  print JSON::encode_json(\@mappederrs);
+  my $json = JSON->new;
+  $json->indent(2);
+  $json->canonical(1);
+  print $json->encode(\@mappederrs);
 
   return $self;
 }

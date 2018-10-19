@@ -257,7 +257,10 @@ for my $file (@ARGV) {
         }
       }
     }
-    print encode_json($dump);
+    my $json = JSON->new;
+    $json->indent(2);
+    $json->canonical(1);
+    print $json->encode($dump);
   }
   else {
     my $errors = $linter->lint($scope);
