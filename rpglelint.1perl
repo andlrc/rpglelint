@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "RPGLELINT 1"
-.TH RPGLELINT 1 "2018-10-19" "perl v5.28.0" "User Contributed Perl Documentation"
+.TH RPGLELINT 1 "2018-10-23" "perl v5.28.0" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -253,6 +253,9 @@ moving on to the next include directory.
 .SH "ENVIRONMENT VARIABLES"
 .IX Header "ENVIRONMENT VARIABLES"
 The following environment variables are read and used by rpglelint as described.
+.IP "\fB\s-1RPGLELINT\s0\fR" 4
+.IX Item "RPGLELINT"
+options which are passed to \fIrpglelint\fR automatically
 .IP "\fB\s-1RPGLELINT_INCLUDE\s0\fR" 4
 .IX Item "RPGLELINT_INCLUDE"
 a file glob with directories that will be searched for included files, see

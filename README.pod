@@ -168,6 +168,10 @@ The following environment variables are read and used by rpglelint as described.
 
 =over 4
 
+=item B<RPGLELINT>
+
+options which are passed to I<rpglelint> automatically
+
 =item B<RPGLELINT_INCLUDE>
 
 a file glob with directories that will be searched for included files, see
