@@ -1064,6 +1064,8 @@ sub lint_unreachable_code
     return undef unless defined $calc;
 
     if ($calc->{what} eq main::CALC_EXSR) {
+
+      ${$preturned} = 0;
       my $unreached = $exsrstmt->($scope, $calc, $calcs, $preturned);
       return $unreached if defined $unreached;
 

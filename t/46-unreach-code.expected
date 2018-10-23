@@ -1,0 +1,3 @@
+t/46-unreach-code.rpgle:10:3: warning: code will never be executed [-Wunreachable-code]
+   return 'fail here';
+   ^
