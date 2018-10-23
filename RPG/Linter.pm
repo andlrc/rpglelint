@@ -871,13 +871,34 @@ sub lint_unused_variable
 
     # check if a 'likeds' is found
     for (@{$scope->{declarations}}) {
-      next unless $_->{what} eq main::DCL_DS;
-      next unless defined $_->{likeds};
-      if (defined $decls->{fc $_->{likeds}}) {
-        $decls->{fc $_->{likeds}} = 0; # marked deleted
+      if ($_->{what} eq main::DCL_DS && defined $_->{likeds}) {
+        my $likeds = fc $_->{likeds};
+        if (defined $decls->{$likeds}) {
+          $decls->{$likeds} = 0; # marked deleted
+        }
+        elsif (defined $gdecls->{fc $_->{name}}) {
+          $gdecls->{$likeds} = 0; # marked deleted
+        }
+
+        next;
       }
-      elsif (defined $gdecls->{fc $_->{name}}) {
-        $gdecls->{fc $_->{likeds}} = 0; # marked deleted
+
+      if ($_->{what} eq main::DCL_S && defined $_->{like}) {
+
+        my $like = fc $_->{like};
+        if ($like =~ m{ ^ (.+?) \. (.+?) $ }xsmi) {
+          # TODO: Check subf as well as struct
+          $like = $1;
+        }
+
+        if (defined $decls->{$like}) {
+          $decls->{$like} = 0; # marked deleted
+        }
+        elsif (defined $gdecls->{fc $_->{name}}) {
+          $gdecls->{$like} = 0; # marked deleted
+        }
+
+        next;
       }
     }
 

@@ -354,11 +354,16 @@ sub parse
       }xsmi) {
 
       my @kws = split(/\s+/, defined $3 ? $3 : '');
-      $self->adddecl(main::DCL_S, {
+      my $decl = $self->adddecl(main::DCL_S, {
         name => $1,
+        like => undef,
         type => defined $2 ? $2 : '',
         kws => \@kws
       });
+
+      if ($decl->{type} =~ m{ like \( (.*?) \) }xsmi) {
+        $decl->{like} = $1;
+      }
 
       next;
     }
