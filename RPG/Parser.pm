@@ -286,7 +286,12 @@ sub parse
     next if $stmt->{code} =~ m{ ^ \s* / }xsmi;
 
     # FIXME: ctl-opt
-    next if $stmt->{code} =~ m{ ctl-opt }xsmi;
+    if ($stmt->{code} =~ m{ ctl-opt }xsmi) {
+      if ($stmt->{code} =~ m{ main\( (.*?) \) }xsmi) {
+        $self->{scope}->{main} = $1;
+      }
+      next;
+    }
 
     # dcl-proc
     if ($stmt->{code} =~ m{

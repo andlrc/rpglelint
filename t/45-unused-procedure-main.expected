@@ -1,0 +1,3 @@
+t/45-unused-procedure-main.rpgle:7:10: warning: 'my_proc2' defined but not used [-Wunused-procedure]
+ dcl-proc my_proc2;
+          ^

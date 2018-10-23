@@ -766,9 +766,18 @@ sub lint_unused_procedure
     }
   });
 
-  for (keys %{$procs}) {
-    my $proc = $procs->{$_};
-    next if $proc == 0 || $proc->{exported};
+  for my $procname (keys %{$procs}) {
+    my $proc = $procs->{$procname};
+
+    # marked deleted
+    next if $proc == 0;
+
+    # ignore the main procedure refered with "ctl-opt main(XXX)"
+    next if defined $gscope->{main} && fc $gscope->{main} eq $procname;
+
+    # exported procedures can always be used
+    next if $proc->{exported};
+
     $self->error(main::RULES_UNUSED_PROCEDURE, $proc);
   }
 
@@ -829,8 +838,11 @@ sub lint_unused_variable
     for (keys %{$decls}) {
       my $decl = $decls->{$_};
 
+      # marked deleted
+      next if $decl == 0;
+
       # ignore parameters as they are checked with -Wunused-parameter
-      next if $decl == 0 || $decl->{what} eq main::DCL_PARM;
+      next if $decl->{what} eq main::DCL_PARM;
 
       $self->error(main::RULES_UNUSED_VARIABLE, $decl) unless $decl == 0;
     }
