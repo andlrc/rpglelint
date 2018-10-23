@@ -892,6 +892,22 @@ sub lint_unused_variable
       }
     }
 
+    if (defined $scope->{subroutines}) {
+      for my $subname (keys %{$scope->{subroutines}}) {
+        my $sub = $scope->{subroutines}->{$subname};
+        for (@{$sub->{calculations}}) {
+          if ($_->{what} eq main::CALC_IDENT) {
+            if (defined $decls->{fc $_->{token}}) {
+              $decls->{fc $_->{token}} = 0; # marked deleted
+            }
+            elsif (defined $gdecls->{fc $_->{token}}) {
+              $gdecls->{fc $_->{token}} = 0; # marked deleted
+            }
+          }
+        }
+      }
+    }
+
     # not global scope
     if ($decls != $gdecls) {
       $checkdecls->($decls);

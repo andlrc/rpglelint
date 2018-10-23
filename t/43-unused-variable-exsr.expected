@@ -1,0 +1,3 @@
+t/43-unused-variable-exsr.rpgle:4:7: warning: 'my_var2' defined but not used [-Wunused-variable]
+ dcl-s my_var2 int(10);
+       ^
