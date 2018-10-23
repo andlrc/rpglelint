@@ -118,7 +118,8 @@ my $isdsqual = sub
 
   if (defined $decl->{likeds}) {
     my $dschain = $findlikeds->($decl->{likeds}, @{$scopes});
-    return if grep({ $_->{qualified} } @{$dschain});
+
+    return 1 if grep({ $_->{qualified} } @{$dschain});
   }
 
   return 0;
@@ -872,11 +873,11 @@ sub lint_unused_variable
     for (@{$scope->{declarations}}) {
       next unless $_->{what} eq main::DCL_DS;
       next unless defined $_->{likeds};
-      if (defined $decls->{fc $_->{name}}) {
-        $decls->{fc $_->{name}} = 0; # marked deleted
+      if (defined $decls->{fc $_->{likeds}}) {
+        $decls->{fc $_->{likeds}} = 0; # marked deleted
       }
       elsif (defined $gdecls->{fc $_->{name}}) {
-        $gdecls->{fc $_->{name}} = 0; # marked deleted
+        $gdecls->{fc $_->{likeds}} = 0; # marked deleted
       }
     }
 

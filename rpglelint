@@ -204,7 +204,7 @@ use RPG::Linter;
 use JSON;
 
 our $PGM = "rpglelint";
-our $VERSION = "0.8.2";
+our $VERSION = "0.8.3";
 
 my $parser = RPG::Parser->new;
 my $linter = RPG::Linter->new;
