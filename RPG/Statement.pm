@@ -40,6 +40,18 @@ sub readstmt
 
   $self->{startlineno} = $.;
 
+  # free indicator
+  if ($code =~ m{ ^ \s* \*\* FREE }xsi) {
+    $self->{code} = $code;
+    return 1;
+  }
+
+  # Compiler directive
+  if ($code =~ m{ ^ \s* / \s* \w+ }xsi) {
+    $self->{code} = $code;
+    return 1;
+  }
+
   # FIXME: Support multiline strings with '//' in them
   # remove trailing comments
   if ($code =~ s{ // (.*?) $ }{}xsi) {

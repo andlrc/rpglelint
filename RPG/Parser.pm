@@ -264,6 +264,7 @@ sub parse
 
   while (my $stmt = $self->getstmt()) {
 
+    # copy / included files
     if ($stmt->{code} =~ m{
         ^ \s* / \s* (?: copy | include ) \s+ (.*?) \s* $
       }xsmi) {
@@ -284,6 +285,11 @@ sub parse
 
     # skip other compiler directive
     next if $stmt->{code} =~ m{ ^ \s* / }xsmi;
+
+    # FIXME: **FREE
+    if ($stmt->{code} =~ m{ ^ \s* \*\* FREE }xsi) {
+      next;
+    }
 
     # FIXME: ctl-opt
     if ($stmt->{code} =~ m{ ctl-opt }xsmi) {
