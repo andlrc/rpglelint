@@ -30,6 +30,16 @@ my $R_OPCODE = '(?: \b select \b | \b when \b | \b other \b | \b endsl \b'
              . '  | \b return \b)';
 
 my $R_IND = '\* (?: ON | OFF | NULL | BLANK | BLANKS | OMIT'
+          # Date
+          . '     | YMD | DMY | MDY | JUL'
+          . '     | CYMD | CDMY | CMDY'
+          . '     | ISO | USA | EUR | JIS | LONGJUL'
+          # Time
+          . '     | HMS | ISO | USA | EUR | JIS'
+          # Timestamp
+          . '     | ISO | ISO0'
+          # Other
+          . '     | JOBRUN'
           . '     | IN[0-0][0-9] | INH[1-9]  | INL[1-9] | INLR | INU[1-8] | INRT )';
 
 my $strjoin = sub

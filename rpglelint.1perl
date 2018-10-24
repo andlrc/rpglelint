@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "RPGLELINT 1"
-.TH RPGLELINT 1 "2018-10-24" "rpglelint 0.8.9" "User Commands"
+.TH RPGLELINT 1 "2018-10-24" "rpglelint 0.8.10" "User Commands"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -222,8 +222,30 @@ warn when a declaration is never referred
 warn when a constant (defined with \fBDCL-C\fR) is not all uppercase
 .IP "\fB\-Wuppercase\-indicator\fR [\-Wall]" 4
 .IX Item "-Wuppercase-indicator [-Wall]"
-warn when an indicator (including \fB*ON\fR, \fB*OFF\fR, \fB*OMIT\fR, \fB*BLANK\fR, and
-\&\fB*BLANKS\fR) is not all uppercase
+warn when an indicator (including
+\&\fB*BLANK\fR,
+\&\fB*BLANKS\fR,
+\&\fB*CDMY\fR,
+\&\fB*CMDY\fR,
+\&\fB*CYMD\fR,
+\&\fB*DMY\fR,
+\&\fB*EUR\fR,
+\&\fB*EUR\fR,
+\&\fB*HMS\fR,
+\&\fB*ISO0\fR,
+\&\fB*ISO\fR,
+\&\fB*JIS\fR,
+\&\fB*JOBRUN\fR,
+\&\fB*JUL\fR,
+\&\fB*LONGJUL\fR,
+\&\fB*MDY\fR,
+\&\fB*OFF\fR,
+\&\fB*OMIT\fR,
+\&\fB*ON\fR,
+\&\fB*USA\fR,
+\&\fB*USA\fR,
+and
+\&\fB*YMD\fR) is not all uppercase
 .SH "INCLUDE DIRECTORIES"
 .IX Header "INCLUDE DIRECTORIES"
 The following will happen to included files when searched for existence:

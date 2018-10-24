@@ -703,9 +703,18 @@ sub lint_indicator
       if ($_->{what} eq main::CALC_IND) {
         # Allow *ON, *OFF, *NULL, *BLANK, *BLANKS, and *OMIT
         next if $_->{token} =~ m{
-          \* (?: ON | OFF | NULL | BLANK | BLANKS | OMIT )
+          \* (?: ON | OFF | NULL | BLANK | BLANKS | OMIT
+               # Date
+               | YMD | DMY | MDY | JUL
+               | CYMD | CDMY | CMDY
+               | ISO | USA | EUR | JIS | LONGJUL
+               # Time
+               | HMS | ISO | USA | EUR | JIS
+               # Timestamp
+               | ISO | ISO0
+               # Other
+               | JOBRUN)
         }xsmi;
-
         $self->error(main::RULES_INDICATOR, $_);
       }
     }

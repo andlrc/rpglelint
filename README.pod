@@ -114,8 +114,30 @@ warn when a constant (defined with B<DCL-C>) is not all uppercase
 
 =item B<-Wuppercase-indicator> [-Wall]
 
-warn when an indicator (including B<*ON>, B<*OFF>, B<*OMIT>, B<*BLANK>, and
-B<*BLANKS>) is not all uppercase
+warn when an indicator (including
+B<*BLANK>,
+B<*BLANKS>,
+B<*CDMY>,
+B<*CMDY>,
+B<*CYMD>,
+B<*DMY>,
+B<*EUR>,
+B<*EUR>,
+B<*HMS>,
+B<*ISO0>,
+B<*ISO>,
+B<*JIS>,
+B<*JOBRUN>,
+B<*JUL>,
+B<*LONGJUL>,
+B<*MDY>,
+B<*OFF>,
+B<*OMIT>,
+B<*ON>,
+B<*USA>,
+B<*USA>,
+and
+B<*YMD>) is not all uppercase
 
 =back
 
