@@ -1,0 +1,23 @@
+[
+   {
+      "column":10,
+      "file":"t/39-unused-var.rpgle",
+      "line":3,
+      "message":"'myproc' defined but not used",
+      "severity":"warning"
+   },
+   {
+      "column":5,
+      "file":"t/39-unused-var.rpgle",
+      "line":5,
+      "message":"'myparm' defined but not used",
+      "severity":"warning"
+   },
+   {
+      "column":7,
+      "file":"t/39-unused-var.rpgle",
+      "line":18,
+      "message":"'myint' defined but not used",
+      "severity":"warning"
+   }
+]

@@ -1,0 +1,16 @@
+[
+   {
+      "column":7,
+      "file":"t/12-shadow-subf.rpgle",
+      "line":10,
+      "message":"declaration of 'subf1' shadows a global declaration",
+      "severity":"warning"
+   },
+   {
+      "column":3,
+      "file":"t/12-shadow-subf.rpgle",
+      "line":3,
+      "message":"shadowed declaration is here",
+      "severity":"note"
+   }
+]

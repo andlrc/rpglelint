@@ -1,0 +1,9 @@
+[
+   {
+      "column":10,
+      "file":"t/45-unused-procedure-main.rpgle",
+      "line":7,
+      "message":"'my_proc2' defined but not used",
+      "severity":"warning"
+   }
+]

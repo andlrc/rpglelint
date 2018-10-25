@@ -1,0 +1,9 @@
+[
+   {
+      "column":6,
+      "file":"t/31-undefref-exsr.rpgle",
+      "line":4,
+      "message":"'shouldFail' undeclared",
+      "severity":"warning"
+   }
+]

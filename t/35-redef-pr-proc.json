@@ -1,0 +1,16 @@
+[
+   {
+      "column":7,
+      "file":"t/35-redef-pr-proc.rpgle",
+      "line":4,
+      "message":"redefinition of 'myint' as a different kind of symbol",
+      "severity":"warning"
+   },
+   {
+      "column":7,
+      "file":"t/35-redef-pr-proc.rpgle",
+      "line":3,
+      "message":"previous definition is here",
+      "severity":"note"
+   }
+]

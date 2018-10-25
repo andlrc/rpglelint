@@ -1,0 +1,9 @@
+[
+   {
+      "column":3,
+      "file":"t/14-undefref-dcl-pi.rpgle",
+      "line":19,
+      "message":"'c' undeclared",
+      "severity":"warning"
+   }
+]

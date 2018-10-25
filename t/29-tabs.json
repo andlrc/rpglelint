@@ -1,0 +1,9 @@
+[
+   {
+      "column":8,
+      "file":"t/29-tabs.rpgle",
+      "line":2,
+      "message":"global declaration 'key' is not allowed",
+      "severity":"warning"
+   }
+]

@@ -1,0 +1,44 @@
+[
+   {
+      "column":8,
+      "file":"t/09-qualified-likeds-nested.rpgle",
+      "line":2,
+      "message":"data structure 'not_qual' needs to be qualified",
+      "severity":"warning"
+   },
+   {
+      "column":10,
+      "file":"t/09-qualified-likeds-nested.rpgle",
+      "line":13,
+      "message":"data structure 'lnot_qual' needs to be qualified",
+      "severity":"warning"
+   },
+   {
+      "column":10,
+      "file":"t/09-qualified-likeds-nested.rpgle",
+      "line":14,
+      "message":"data structure 'llnot_qual' needs to be qualified",
+      "severity":"warning"
+   },
+   {
+      "column":10,
+      "file":"t/09-qualified-likeds-nested.rpgle",
+      "line":18,
+      "message":"data structure 'not_qual2' needs to be qualified",
+      "severity":"warning"
+   },
+   {
+      "column":10,
+      "file":"t/09-qualified-likeds-nested.rpgle",
+      "line":28,
+      "message":"data structure 'lnot_qual2' needs to be qualified",
+      "severity":"warning"
+   },
+   {
+      "column":10,
+      "file":"t/09-qualified-likeds-nested.rpgle",
+      "line":29,
+      "message":"data structure 'llnot_qual2' needs to be qualified",
+      "severity":"warning"
+   }
+]

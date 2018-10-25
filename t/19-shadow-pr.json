@@ -1,0 +1,16 @@
+[
+   {
+      "column":9,
+      "file":"t/19-shadow-pr.rpgle",
+      "line":6,
+      "message":"declaration of 'pr1' shadows a global declaration",
+      "severity":"warning"
+   },
+   {
+      "column":8,
+      "file":"t/19-shadow-pr.rpgle",
+      "line":2,
+      "message":"shadowed declaration is here",
+      "severity":"note"
+   }
+]

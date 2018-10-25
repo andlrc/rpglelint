@@ -1,0 +1,30 @@
+[
+   {
+      "column":10,
+      "file":"t/36-mismatch-pr-proc.rpgle",
+      "line":30,
+      "message":"conflicting types for 'proc2'",
+      "severity":"warning"
+   },
+   {
+      "column":8,
+      "file":"t/36-mismatch-pr-proc.rpgle",
+      "line":8,
+      "message":"previous declaration of 'proc2' was here",
+      "severity":"note"
+   },
+   {
+      "column":10,
+      "file":"t/36-mismatch-pr-proc.rpgle",
+      "line":37,
+      "message":"conflicting types for 'proc3'",
+      "severity":"warning"
+   },
+   {
+      "column":8,
+      "file":"t/36-mismatch-pr-proc.rpgle",
+      "line":13,
+      "message":"previous declaration of 'proc3' was here",
+      "severity":"note"
+   }
+]

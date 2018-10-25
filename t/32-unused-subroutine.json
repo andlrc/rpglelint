@@ -1,0 +1,9 @@
+[
+   {
+      "column":7,
+      "file":"t/32-unused-subroutine.rpgle",
+      "line":9,
+      "message":"'shouldFail' defined but not used",
+      "severity":"warning"
+   }
+]

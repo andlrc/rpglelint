@@ -1,0 +1,9 @@
+[
+   {
+      "column":7,
+      "file":"t/43-unused-variable-exsr.rpgle",
+      "line":4,
+      "message":"'my_var2' defined but not used",
+      "severity":"warning"
+   }
+]

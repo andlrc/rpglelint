@@ -1,0 +1,16 @@
+[
+   {
+      "column":1,
+      "file":"t/02-undefref.rpgle",
+      "line":5,
+      "message":"'var3' undeclared",
+      "severity":"warning"
+   },
+   {
+      "column":7,
+      "file":"t/02-undefref.rpgle",
+      "line":6,
+      "message":"'var4' undeclared",
+      "severity":"warning"
+   }
+]

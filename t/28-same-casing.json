@@ -1,0 +1,44 @@
+[
+   {
+      "column":8,
+      "file":"t/28-same-casing.rpgle",
+      "line":9,
+      "message":"'myds' is not in the same casing as 'MyDS'",
+      "severity":"warning"
+   },
+   {
+      "column":8,
+      "file":"t/28-same-casing.rpgle",
+      "line":3,
+      "message":"definition is here",
+      "severity":"note"
+   },
+   {
+      "column":1,
+      "file":"t/28-same-casing.rpgle",
+      "line":12,
+      "message":"'subf1' is not in the same casing as 'SUBF1'",
+      "severity":"warning"
+   },
+   {
+      "column":3,
+      "file":"t/28-same-casing.rpgle",
+      "line":4,
+      "message":"definition is here",
+      "severity":"note"
+   },
+   {
+      "column":1,
+      "file":"t/28-same-casing.rpgle",
+      "line":14,
+      "message":"'Abc' is not in the same casing as 'abc'",
+      "severity":"warning"
+   },
+   {
+      "column":7,
+      "file":"t/28-same-casing.rpgle",
+      "line":7,
+      "message":"definition is here",
+      "severity":"note"
+   }
+]

@@ -11,16 +11,19 @@ fi
 for file
 do
 	test -f "$file" || continue
-	expfile=${file%.*}.expected
+	for format in unix json
+	do
+		expfile=${file%.*}.$format
 
-	if test -f "$expfile"
-	then
-		# run test
-		printf '$ %s\n' "$rpglelint $file | diff $expfile -"
-		"$rpglelint" "$file" | diff "$expfile" - || exit 2
-	else
-		# create expected output
-		printf '$ %s\n' "$rpglelint $file > $expfile"
-		"$rpglelint" "$file" > "$expfile"
-	fi
+		if test -f "$expfile"
+		then
+			# run test
+			printf '$ %s\n' "$rpglelint -f$format $file | diff $expfile -"
+			"$rpglelint" -f"$format" "$file" | diff "$expfile" - || exit 2
+		else
+			# create expected output
+			printf '$ %s\n' "$rpglelint -f$format $file > $expfile"
+			"$rpglelint" -f"$format" "$file" > "$expfile"
+		fi
+	done
 done

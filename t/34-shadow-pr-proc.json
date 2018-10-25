@@ -1,0 +1,16 @@
+[
+   {
+      "column":9,
+      "file":"t/34-shadow-pr-proc.rpgle",
+      "line":9,
+      "message":"declaration of 'myint' shadows a global declaration",
+      "severity":"warning"
+   },
+   {
+      "column":7,
+      "file":"t/34-shadow-pr-proc.rpgle",
+      "line":3,
+      "message":"shadowed declaration is here",
+      "severity":"note"
+   }
+]

@@ -1,0 +1,9 @@
+[
+   {
+      "column":7,
+      "file":"t/44-unused-variable-ds-like.rpgle",
+      "line":9,
+      "message":"'d' defined but not used",
+      "severity":"warning"
+   }
+]

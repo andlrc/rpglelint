@@ -1,0 +1,51 @@
+[
+   {
+      "column":1,
+      "file":"t/07-undefref-subf.rpgle",
+      "line":13,
+      "message":"'is_global_err' undeclared",
+      "severity":"warning"
+   },
+   {
+      "column":8,
+      "file":"t/07-undefref-subf.rpgle",
+      "line":16,
+      "message":"'is_subf_err' undeclared",
+      "severity":"warning"
+   },
+   {
+      "column":13,
+      "file":"t/07-undefref-subf.rpgle",
+      "line":19,
+      "message":"'is_subf_err' undeclared",
+      "severity":"warning"
+   },
+   {
+      "column":1,
+      "file":"t/07-undefref-subf.rpgle",
+      "line":21,
+      "message":"'my_ds_err' undeclared",
+      "severity":"warning"
+   },
+   {
+      "column":11,
+      "file":"t/07-undefref-subf.rpgle",
+      "line":21,
+      "message":"'is_global' undeclared",
+      "severity":"warning"
+   },
+   {
+      "column":1,
+      "file":"t/07-undefref-subf.rpgle",
+      "line":22,
+      "message":"'my_ds_err' undeclared",
+      "severity":"warning"
+   },
+   {
+      "column":11,
+      "file":"t/07-undefref-subf.rpgle",
+      "line":22,
+      "message":"'is_global_arr' undeclared",
+      "severity":"warning"
+   }
+]

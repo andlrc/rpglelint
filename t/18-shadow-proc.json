@@ -1,0 +1,44 @@
+[
+   {
+      "column":5,
+      "file":"t/18-shadow-proc.rpgle",
+      "line":7,
+      "message":"declaration of 'a' shadows a global declaration",
+      "severity":"warning"
+   },
+   {
+      "column":7,
+      "file":"t/18-shadow-proc.rpgle",
+      "line":3,
+      "message":"shadowed declaration is here",
+      "severity":"note"
+   },
+   {
+      "column":5,
+      "file":"t/18-shadow-proc.rpgle",
+      "line":14,
+      "message":"declaration of 'a' shadows a global declaration",
+      "severity":"warning"
+   },
+   {
+      "column":7,
+      "file":"t/18-shadow-proc.rpgle",
+      "line":3,
+      "message":"shadowed declaration is here",
+      "severity":"note"
+   },
+   {
+      "column":9,
+      "file":"t/18-shadow-proc.rpgle",
+      "line":18,
+      "message":"declaration of 'proc1' shadows a global declaration",
+      "severity":"warning"
+   },
+   {
+      "column":10,
+      "file":"t/18-shadow-proc.rpgle",
+      "line":5,
+      "message":"shadowed declaration is here",
+      "severity":"note"
+   }
+]

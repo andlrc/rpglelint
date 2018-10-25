@@ -1,0 +1,16 @@
+[
+   {
+      "column":7,
+      "file":"t/04-ucconst.rpgle",
+      "line":2,
+      "message":"constant 'c1' needs to be all uppercase",
+      "severity":"warning"
+   },
+   {
+      "column":13,
+      "file":"t/04-ucconst.rpgle",
+      "line":6,
+      "message":"constant 'c3' needs to be all uppercase",
+      "severity":"warning"
+   }
+]

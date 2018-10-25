@@ -1,0 +1,30 @@
+[
+   {
+      "column":3,
+      "file":"t/21-unreachcode.rpgle",
+      "line":5,
+      "message":"code will never be executed",
+      "severity":"warning"
+   },
+   {
+      "column":3,
+      "file":"t/21-unreachcode.rpgle",
+      "line":47,
+      "message":"code will never be executed",
+      "severity":"warning"
+   },
+   {
+      "column":5,
+      "file":"t/21-unreachcode.rpgle",
+      "line":61,
+      "message":"code will never be executed",
+      "severity":"warning"
+   },
+   {
+      "column":5,
+      "file":"t/21-unreachcode.rpgle",
+      "line":68,
+      "message":"code will never be executed",
+      "severity":"warning"
+   }
+]

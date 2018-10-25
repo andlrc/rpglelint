@@ -1,0 +1,9 @@
+[
+   {
+      "column":3,
+      "file":"t/15-indicator.rpgle",
+      "line":8,
+      "message":"indicator '*INLR' is not allowed",
+      "severity":"warning"
+   }
+]

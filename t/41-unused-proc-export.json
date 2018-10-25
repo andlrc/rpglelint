@@ -1,0 +1,9 @@
+[
+   {
+      "column":10,
+      "file":"t/41-unused-proc-export.rpgle",
+      "line":9,
+      "message":"'c' defined but not used",
+      "severity":"warning"
+   }
+]

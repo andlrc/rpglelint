@@ -1,0 +1,37 @@
+[
+   {
+      "column":8,
+      "file":"t/16-ucindicator.rpgle",
+      "line":2,
+      "message":"indicator '*oN' needs to be all uppercase",
+      "severity":"warning"
+   },
+   {
+      "column":7,
+      "file":"t/16-ucindicator.rpgle",
+      "line":3,
+      "message":"indicator '*OfF' needs to be all uppercase",
+      "severity":"warning"
+   },
+   {
+      "column":7,
+      "file":"t/16-ucindicator.rpgle",
+      "line":5,
+      "message":"indicator '*NUll' needs to be all uppercase",
+      "severity":"warning"
+   },
+   {
+      "column":8,
+      "file":"t/16-ucindicator.rpgle",
+      "line":7,
+      "message":"indicator '*blank' needs to be all uppercase",
+      "severity":"warning"
+   },
+   {
+      "column":23,
+      "file":"t/16-ucindicator.rpgle",
+      "line":7,
+      "message":"indicator '*blank' needs to be all uppercase",
+      "severity":"warning"
+   }
+]

@@ -1,0 +1,16 @@
+[
+   {
+      "column":9,
+      "file":"t/05-shadow.rpgle",
+      "line":5,
+      "message":"declaration of 'var1' shadows a global declaration",
+      "severity":"warning"
+   },
+   {
+      "column":7,
+      "file":"t/05-shadow.rpgle",
+      "line":2,
+      "message":"shadowed declaration is here",
+      "severity":"note"
+   }
+]

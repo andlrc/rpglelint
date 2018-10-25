@@ -1,0 +1,16 @@
+[
+   {
+      "column":7,
+      "file":"t/01-global.rpgle",
+      "line":2,
+      "message":"global declaration 'global1' is not allowed",
+      "severity":"warning"
+   },
+   {
+      "column":8,
+      "file":"t/01-global.rpgle",
+      "line":3,
+      "message":"global declaration 'global2' is not allowed",
+      "severity":"warning"
+   }
+]

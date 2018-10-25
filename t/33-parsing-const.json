@@ -1,0 +1,9 @@
+[
+   {
+      "column":34,
+      "file":"t/33-parsing-const.rpgle",
+      "line":6,
+      "message":"'C_CEND' undeclared",
+      "severity":"warning"
+   }
+]

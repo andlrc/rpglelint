@@ -1,0 +1,9 @@
+[
+   {
+      "column":8,
+      "file":"t/42-unused-ds-likeds.rpgle",
+      "line":8,
+      "message":"'caseTimes' defined but not used",
+      "severity":"warning"
+   }
+]

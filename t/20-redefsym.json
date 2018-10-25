@@ -1,0 +1,30 @@
+[
+   {
+      "column":7,
+      "file":"t/20-redefsym.rpgle",
+      "line":4,
+      "message":"redefinition of 'a' as a different kind of symbol",
+      "severity":"warning"
+   },
+   {
+      "column":7,
+      "file":"t/20-redefsym.rpgle",
+      "line":3,
+      "message":"previous definition is here",
+      "severity":"note"
+   },
+   {
+      "column":9,
+      "file":"t/20-redefsym.rpgle",
+      "line":9,
+      "message":"redefinition of 'c' as a different kind of symbol",
+      "severity":"warning"
+   },
+   {
+      "column":9,
+      "file":"t/20-redefsym.rpgle",
+      "line":8,
+      "message":"previous definition is here",
+      "severity":"note"
+   }
+]

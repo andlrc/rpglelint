@@ -1,0 +1,23 @@
+[
+   {
+      "column":7,
+      "file":"t/08-subroutines.rpgle",
+      "line":6,
+      "message":"subroutine 'my_sub' is not allowed",
+      "severity":"warning"
+   },
+   {
+      "column":9,
+      "file":"t/08-subroutines.rpgle",
+      "line":18,
+      "message":"subroutine 'my_sub' is not allowed",
+      "severity":"warning"
+   },
+   {
+      "column":9,
+      "file":"t/08-subroutines.rpgle",
+      "line":22,
+      "message":"subroutine 'my_sub2' is not allowed",
+      "severity":"warning"
+   }
+]

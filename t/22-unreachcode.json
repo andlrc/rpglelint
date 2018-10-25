@@ -1,0 +1,9 @@
+[
+   {
+      "column":5,
+      "file":"t/22-unreachcode.rpgle",
+      "line":15,
+      "message":"code will never be executed",
+      "severity":"warning"
+   }
+]

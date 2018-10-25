@@ -1,0 +1,9 @@
+[
+   {
+      "column":3,
+      "file":"t/23-unreach-after-branched-exsr-with-last-return.rpgle",
+      "line":8,
+      "message":"code will never be executed",
+      "severity":"warning"
+   }
+]

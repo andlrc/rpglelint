@@ -1,0 +1,16 @@
+[
+   {
+      "column":7,
+      "file":"t/03-qualified.rpgle",
+      "line":4,
+      "message":"data structure 'not_qual' needs to be qualified",
+      "severity":"warning"
+   },
+   {
+      "column":8,
+      "file":"t/03-qualified.rpgle",
+      "line":15,
+      "message":"data structure 'likey_not_qual' needs to be qualified",
+      "severity":"warning"
+   }
+]

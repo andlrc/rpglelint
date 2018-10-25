@@ -1,0 +1,9 @@
+[
+   {
+      "column":7,
+      "file":"t/40-unused-subroutine.rpgle",
+      "line":12,
+      "message":"'c' defined but not used",
+      "severity":"warning"
+   }
+]

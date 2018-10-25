@@ -1,0 +1,9 @@
+[
+   {
+      "column":21,
+      "file":"t/06-undefref-likeds.rpgle",
+      "line":2,
+      "message":"'undef_ds' undeclared",
+      "severity":"warning"
+   }
+]

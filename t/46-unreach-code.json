@@ -1,0 +1,9 @@
+[
+   {
+      "column":3,
+      "file":"t/46-unreach-code.rpgle",
+      "line":10,
+      "message":"code will never be executed",
+      "severity":"warning"
+   }
+]

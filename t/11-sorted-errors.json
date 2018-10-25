@@ -1,0 +1,51 @@
+[
+   {
+      "column":8,
+      "file":"t/11-sorted-errors.rpgle",
+      "line":2,
+      "message":"global declaration 'a' is not allowed",
+      "severity":"warning"
+   },
+   {
+      "column":8,
+      "file":"t/11-sorted-errors.rpgle",
+      "line":2,
+      "message":"data structure 'a' needs to be qualified",
+      "severity":"warning"
+   },
+   {
+      "column":7,
+      "file":"t/11-sorted-errors.rpgle",
+      "line":5,
+      "message":"global declaration 'a' is not allowed",
+      "severity":"warning"
+   },
+   {
+      "column":8,
+      "file":"t/11-sorted-errors.rpgle",
+      "line":6,
+      "message":"global declaration 'b' is not allowed",
+      "severity":"warning"
+   },
+   {
+      "column":8,
+      "file":"t/11-sorted-errors.rpgle",
+      "line":6,
+      "message":"data structure 'b' needs to be qualified",
+      "severity":"warning"
+   },
+   {
+      "column":3,
+      "file":"t/11-sorted-errors.rpgle",
+      "line":7,
+      "message":"declaration of 'sub1' shadows a global declaration",
+      "severity":"warning"
+   },
+   {
+      "column":3,
+      "file":"t/11-sorted-errors.rpgle",
+      "line":3,
+      "message":"shadowed declaration is here",
+      "severity":"note"
+   }
+]

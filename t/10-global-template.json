@@ -1,0 +1,9 @@
+[
+   {
+      "column":8,
+      "file":"t/10-global-template.rpgle",
+      "line":7,
+      "message":"global declaration 'not_tpl' is not allowed",
+      "severity":"warning"
+   }
+]
