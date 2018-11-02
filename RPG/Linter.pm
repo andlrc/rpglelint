@@ -713,7 +713,7 @@ sub lint_indicator
                # Timestamp
                | ISO | ISO0
                # Other
-               | JOBRUN)
+               | JOBRUN | DATA)
         }xsmi;
         $self->error(main::RULES_INDICATOR, $_);
       }
