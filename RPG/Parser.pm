@@ -64,13 +64,22 @@ my $findfile = sub
       my $slug = $_;
       $slug = "$prefix/$slug" if $prefix;
 
+      # printf("Checing file %s\n", $slug);
       return $slug     if -f $slug;
+
+      # printf("Checing file %s\n", lc($slug));
       return lc($slug) if -f lc($slug);
 
+      # printf("Checing file %s\n", $slug . ".rpgleinc");
       return $slug . ".rpgleinc"     if -f $slug . ".rpgleinc";
+
+      # printf("Checing file %s\n", lc($slug . ".rpgleinc"));
       return lc($slug . ".rpgleinc") if -f lc($slug . ".rpgleinc");
 
+      # printf("Checing file %s\n", $slug . ".mbr");
       return $slug . ".mbr"     if -f $slug . ".mbr";
+
+      # printf("Checing file %s\n", lc($slug . ".mbr"));
       return lc($slug . ".mbr") if -f lc($slug . ".mbr");
     }
   }
@@ -462,6 +471,7 @@ sub parse
       next;
     }
 
+    # exsr subroutines
     if ($stmt->{code} =~ m{ ^ \s* exsr \s+ ($R_IDENT) \s* ; }xsmi) {
       $stmt->calckw($1);
       push(@{$self->{scope}->{calculations}}, {

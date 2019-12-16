@@ -1,0 +1,6 @@
+t/47-based-unused-variable.rpgle:9:8: warning: 'c' defined but not used [-Wunused-variable]
+ dcl-s  c   int(10);
+        ^
+t/47-based-unused-variable.rpgle:24:10: warning: 'c' defined but not used [-Wunused-variable]
+   dcl-s  c int(10);
+          ^
